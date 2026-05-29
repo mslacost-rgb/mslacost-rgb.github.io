@@ -206,7 +206,7 @@ input[readonly]{background:var(--gray);color:#556}
 .lhdr .sub{font-size:8px;letter-spacing:1px;opacity:.6;margin-top:2px;color:#fff}
 .ltype{text-align:center;padding:5px 8px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
 /* Nombre del producto — grande y visible desde lejos */
-.lprod{font-size:32px;font-weight:900;color:var(--teal);padding:10px 14px 10px;border-bottom:2px solid #DDE9E7;line-height:1.2;word-wrap:break-word;text-transform:uppercase}
+.lprod{font-size:32px;font-weight:900;color:var(--teal);padding:10px 14px 10px;border-bottom:2px solid #DDE9E7;line-height:1.2;word-wrap:break-word;text-transform:uppercase;text-align:center}
 /* Zona destacada: Lote + Cantidad lado a lado */
 .lbig{display:flex;border-bottom:2px solid #DDE9E7;background:#fff}
 .lbig-col{flex:1;padding:8px 14px}
@@ -310,10 +310,6 @@ input[readonly]{background:var(--gray);color:#556}
 .stat-box{background:var(--teal-lt);border-radius:8px;padding:10px;text-align:center}
 .stat-box .sv{font-size:22px;font-weight:900;color:var(--teal)}
 .stat-box .sl{font-size:10px;color:#556;margin-top:2px}
-#scan-wrap{border-radius:10px;overflow:hidden;background:#000;margin-bottom:12px;position:relative;display:none}
-#scan-video{width:100%;display:block;max-height:260px;object-fit:cover}
-#scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
-.scan-frame{width:190px;height:190px;border:3px solid var(--teal);border-radius:10px;box-shadow:0 0 0 2000px rgba(0,0,0,.45)}
 #scan-canvas{display:none}
 #scan-result{background:var(--teal-lt);border:1.5px solid var(--teal);border-radius:8px;padding:12px 14px;margin-bottom:12px;display:none}
 #scan-result .sr-name{font-size:17px;font-weight:900;color:var(--teal);text-transform:uppercase;margin-bottom:3px}
@@ -360,7 +356,7 @@ input[readonly]{background:var(--gray);color:#556}
     </svg>
 
     <div class="hdr-text">
-      <h1>Generador de Pegatinas</h1>
+      <h1>Coordinación de Almacén</h1>
       <p>Almacén Central · 3A Biotech</p>
     </div>
     <span class="hdr-badge" id="hdr-badge">Sin datos</span>
@@ -542,30 +538,29 @@ input[readonly]{background:var(--gray);color:#556}
     <div class="stat-box"><div class="sv" id="stat-movs">0</div><div class="sl">Movimientos hoy</div></div>
   </div>
 
-  <!-- Escáner -->
+  <!-- Identificar palé -->
   <div class="step">
     <div class="step-header">
-      <div class="step-num">📷</div>
-      <h2>Escanear pegatina del palé</h2>
+      <div class="step-num">📦</div>
+      <h2>Identificar palé</h2>
     </div>
     <div class="step-body">
-      <!-- Foto QR — funciona sin HTTPS ni permisos especiales -->
-      <input type="file" id="qr-file-input" accept="image/*" capture="environment" style="display:none" onchange="processQRImage(this)">
-      <button class="btn btn-primary" onclick="document.getElementById('qr-file-input').click()" style="width:100%;margin-bottom:8px">📷 Hacer foto del QR para escanear</button>
-      <div id="scan-wrap" style="display:none">
-        <video id="scan-video" autoplay playsinline muted></video>
-        <div id="scan-overlay"><div class="scan-frame"></div></div>
-        <canvas id="scan-canvas"></canvas>
+      <!-- Escáner QR con cámara -->
+      <div style="margin-bottom:12px">
+        <button class="btn btn-primary" id="btn-camara" onclick="toggleCamara()" style="width:100%;font-size:17px;padding:14px;letter-spacing:.3px">📷 Escanear QR con cámara</button>
       </div>
-      <button class="btn btn-ghost" id="btn-scan" onclick="toggleScanner()" style="width:100%;margin-bottom:8px;font-size:12px">🔴 Escáner en tiempo real (solo HTTPS)</button>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-        <span style="font-size:11px;color:#aaa">o introduce el código manualmente</span>
-        <div style="flex:1;height:1px;background:var(--border)"></div>
+      <div id="camara-wrap" style="display:none;margin-bottom:12px;position:relative;border-radius:12px;overflow:hidden;background:#000">
+        <video id="scan-video" autoplay playsinline muted style="width:100%;display:block;max-height:280px;object-fit:cover"></video>
+        <canvas id="scan-canvas" style="display:none"></canvas>
+        <!-- Marco de guía -->
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:180px;height:180px;border:3px solid rgba(255,255,255,0.8);border-radius:12px;pointer-events:none;box-shadow:0 0 0 2000px rgba(0,0,0,0.35)"></div>
+        <div style="position:absolute;bottom:10px;left:0;right:0;text-align:center;color:#fff;font-size:13px;opacity:.85">Apunta al código QR de la pegatina</div>
+        <button onclick="stopCamara()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;line-height:1">✕</button>
       </div>
+      <!-- Entrada manual -->
       <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input type="text" id="scan-manual" placeholder="Pega aquí el contenido del QR o el nº de lote…" style="flex:1;font-size:14px" autocomplete="off" autocorrect="off" spellcheck="false">
-        <button class="btn btn-primary" onclick="processManualInput()" style="flex-shrink:0;padding:12px 16px">→</button>
+        <input type="text" id="scan-manual" placeholder="O escribe el nº de lote manualmente…" style="flex:1;font-size:16px" autocomplete="off" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter') processManualInput()">
+        <button class="btn btn-primary" onclick="processManualInput()" style="flex-shrink:0;padding:12px 18px;font-size:16px">→</button>
       </div>
       <div id="scan-result">
         <div class="sr-name" id="sr-name">—</div>
@@ -631,17 +626,32 @@ input[readonly]{background:var(--gray);color:#556}
     </div>
   </div>
 
-  <!-- Exportar Excel -->
-  <div class="step">
-    <div class="step-header">
-      <div class="step-num">📊</div>
-      <h2>Exportar registro a Excel</h2>
-    </div>
-    <div class="step-body">
-      <p style="font-size:13px;color:#556;margin-bottom:14px">Genera un Excel con <strong>una pestaña por almacén</strong> (stock actual) más una pestaña de <strong>historial de movimientos</strong> completo.</p>
-      <div class="actions">
-        <button class="btn btn-success" onclick="exportAlmacenExcel()" style="flex:1">📥 Descargar Excel de almacén</button>
-        <button class="btn btn-ghost" onclick="if(confirm('¿Borrar TODOS los registros de almacén? Esta acción no se puede deshacer.')) clearRegistros()" title="Borrar todos los registros">🗑️</button>
+  <!-- Opciones avanzadas (protegidas por PIN) -->
+  <div style="text-align:center;margin-bottom:12px">
+    <button onclick="toggleAdminPanel()" style="background:none;border:none;color:#aaa;font-size:11px;cursor:pointer;padding:8px">⚙️ Opciones avanzadas</button>
+  </div>
+  <div id="admin-panel" style="display:none">
+    <div class="step" style="border:2px solid var(--teal)">
+      <div class="step-header">
+        <div class="step-num">🔒</div>
+        <h2>Administración — Solo responsable de almacén</h2>
+      </div>
+      <div class="step-body">
+        <div id="admin-locked">
+          <div class="field">
+            <label>PIN de acceso</label>
+            <input type="password" id="admin-pin" placeholder="Introduce el PIN" inputmode="numeric" maxlength="6" style="letter-spacing:4px;font-size:20px;text-align:center" onkeydown="if(event.key==='Enter') checkAdminPin()">
+          </div>
+          <button class="btn btn-primary" onclick="checkAdminPin()" style="width:100%">🔓 Desbloquear</button>
+        </div>
+        <div id="admin-unlocked" style="display:none">
+          <p style="font-size:13px;color:#556;margin-bottom:14px">Genera un Excel con <strong>una pestaña por almacén</strong> (stock actual) más una pestaña de <strong>historial de movimientos</strong> completo.</p>
+          <div class="actions" style="flex-direction:column;gap:8px">
+            <button class="btn btn-success" onclick="exportAlmacenExcel()" style="width:100%">📥 Descargar Excel de almacén</button>
+            <button class="btn btn-ghost" onclick="if(confirm('¿Borrar TODOS los registros? Esta acción no se puede deshacer.')) { clearRegistros(); lockAdmin(); }" style="width:100%;border-color:var(--red);color:var(--red)">🗑️ Borrar todos los registros</button>
+            <button class="btn btn-ghost" onclick="lockAdmin()" style="width:100%;font-size:12px">🔒 Bloquear</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -897,6 +907,7 @@ window.addEventListener('load',()=>{
   }catch(e){}
   if(typeof navigator.share==='function') document.getElementById('btn-share').style.display='inline-flex';
   if(navigator.bluetooth) document.getElementById('btn-bt').style.display='inline-flex';
+  checkURLParams();
 });
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
@@ -1239,55 +1250,25 @@ function setMode(mode){
   }
 }
 
-// ── Escáner QR ────────────────────────────────────────────────────────────────
-let scanStream=null, scanActive=false, scanAnimFrame=null, scannedLot=null;
+// ── Identificación de palé ────────────────────────────────────────────────────
+let scannedLot=null;
 
-async function toggleScanner(){
-  if(scanActive){ stopScanner(); return; }
-  const btn=document.getElementById('btn-scan');
-  if(typeof jsQR==='undefined'){
-    alert('La librería jsQR no se cargó. Comprueba la conexión a internet y recarga la página.');
-    return;
-  }
-  try{
-    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}});
-    const video=document.getElementById('scan-video');
-    video.srcObject=scanStream;
-    await video.play();
-    document.getElementById('scan-wrap').style.display='block';
-    btn.textContent='⏹ Detener cámara';
-    btn.className='btn btn-ghost'; btn.style.width='100%'; btn.style.marginBottom='8px';
-    scanActive=true;
-    doScanFrame();
-  } catch(e){
-    if(e.name==='NotAllowedError') alert('Permiso de cámara denegado. Actívalo en los ajustes del navegador y vuelve a intentarlo.');
-    else alert('No se pudo acceder a la cámara: '+e.message);
-  }
-}
-
-function stopScanner(){
-  scanActive=false;
-  if(scanAnimFrame){ cancelAnimationFrame(scanAnimFrame); scanAnimFrame=null; }
-  if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
-  const wrap=document.getElementById('scan-wrap');
-  const btn=document.getElementById('btn-scan');
-  if(wrap) wrap.style.display='none';
-  if(btn){ btn.textContent='📷 Activar cámara para escanear'; btn.className='btn btn-primary'; btn.style.width='100%'; btn.style.marginBottom='8px'; }
-}
-
-function doScanFrame(){
-  if(!scanActive) return;
-  const video=document.getElementById('scan-video');
-  const canvas=document.getElementById('scan-canvas');
-  if(video.readyState===video.HAVE_ENOUGH_DATA){
-    canvas.width=video.videoWidth; canvas.height=video.videoHeight;
-    const ctx=canvas.getContext('2d');
-    ctx.drawImage(video,0,0);
-    const img=ctx.getImageData(0,0,canvas.width,canvas.height);
-    const code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
-    if(code&&code.data){ processQRData(code.data); stopScanner(); return; }
-  }
-  scanAnimFrame=requestAnimationFrame(doScanFrame);
+// Cuando la app se abra desde un QR (URL con parámetros), carga el lote automáticamente
+// Ej: https://tu-app.com?lote=3A2226ABF&ref=PT00002&desc=AbutoxForte&kg=150
+function checkURLParams(){
+  const p=new URLSearchParams(window.location.search);
+  if(!p.get('lote')) return;
+  processQRData([
+    p.get('lote')||'',
+    p.get('ref')||'',
+    p.get('desc')||'',
+    p.get('pol')?'POL:'+p.get('pol'):'',
+    p.get('kg')?p.get('kg')+'kg':'',
+    p.get('almacen')||'',
+    p.get('fecha')?'F:'+p.get('fecha'):''
+  ].filter(Boolean).join('|'));
+  // Cambiar a modo gestión automáticamente
+  setMode('gestion');
 }
 
 function processQRData(raw){
@@ -1343,6 +1324,82 @@ function processQRImage(input){
   };
   reader.readAsDataURL(file);
 }
+
+// ── Escáner cámara ────────────────────────────────────────────────────────────
+let _scanStream=null, _scanRAF=null, _scanCooldown=false;
+
+function beepScan(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type='sine'; osc.frequency.value=1200;
+    gain.gain.setValueAtTime(0.4,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.18);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.18);
+  }catch(e){}
+}
+
+async function toggleCamara(){
+  if(_scanStream){ stopCamara(); return; }
+  const wrap=document.getElementById('camara-wrap');
+  const video=document.getElementById('scan-video');
+  const btn=document.getElementById('btn-camara');
+  try{
+    _scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+    video.srcObject=_scanStream;
+    await video.play();
+    wrap.style.display='block';
+    btn.textContent='⏹ Detener cámara';
+    btn.style.background='#e55';
+    _doScanFrame();
+  }catch(err){
+    if(err.name==='NotAllowedError') toast('⚠️ Permiso de cámara denegado — actívalo en la configuración del navegador');
+    else toast('Error al abrir la cámara: '+err.message);
+  }
+}
+
+function stopCamara(){
+  if(_scanRAF){ cancelAnimationFrame(_scanRAF); _scanRAF=null; }
+  if(_scanStream){ _scanStream.getTracks().forEach(t=>t.stop()); _scanStream=null; }
+  document.getElementById('camara-wrap').style.display='none';
+  const btn=document.getElementById('btn-camara');
+  btn.textContent='📷 Escanear QR con cámara';
+  btn.style.background='';
+}
+
+function _doScanFrame(){
+  if(!_scanStream){ return; }
+  const video=document.getElementById('scan-video');
+  const canvas=document.getElementById('scan-canvas');
+  if(video.readyState===video.HAVE_ENOUGH_DATA){
+    canvas.width=video.videoWidth;
+    canvas.height=video.videoHeight;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    if(!_scanCooldown){
+      const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+      const code=jsQR(imgData.data,imgData.width,imgData.height,{inversionAttempts:'attemptBoth'});
+      if(code&&code.data){
+        _scanCooldown=true;
+        beepScan();
+        stopCamara();
+        const data=code.data;
+        if(data.includes('|')){
+          processQRData(data);
+        } else {
+          document.getElementById('scan-manual').value=data;
+          processManualInput();
+        }
+        setTimeout(()=>{ _scanCooldown=false; },2000);
+        return;
+      }
+    }
+  }
+  _scanRAF=requestAnimationFrame(_doScanFrame);
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function processManualInput(){
   const val=document.getElementById('scan-manual').value.trim();
@@ -1482,6 +1539,34 @@ function updateStats(){
   document.getElementById('stat-total').textContent=activos.length;
   document.getElementById('stat-alms').textContent=almsConStock;
   document.getElementById('stat-movs').textContent=movsHoy;
+}
+
+// ── Panel de administración ───────────────────────────────────────────────────
+const ADMIN_PIN='3A2026';  // ← cambia este PIN cuando quieras
+
+function toggleAdminPanel(){
+  const panel=document.getElementById('admin-panel');
+  panel.style.display=panel.style.display==='none'?'block':'none';
+  if(panel.style.display==='none') lockAdmin();
+}
+function checkAdminPin(){
+  const input=document.getElementById('admin-pin');
+  if(input.value===ADMIN_PIN){
+    document.getElementById('admin-locked').style.display='none';
+    document.getElementById('admin-unlocked').style.display='block';
+    input.value='';
+    toast('✅ Acceso concedido');
+  } else {
+    input.value='';
+    toast('❌ PIN incorrecto');
+    input.focus();
+  }
+}
+function lockAdmin(){
+  document.getElementById('admin-locked').style.display='block';
+  document.getElementById('admin-unlocked').style.display='none';
+  document.getElementById('admin-panel').style.display='none';
+  document.getElementById('admin-pin').value='';
 }
 
 function clearRegistros(){
