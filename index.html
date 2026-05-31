@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pegatinas 3A">
+<meta name="theme-color" content="#1A6B64">
+<title>3A Biotech · Pegatinas Almacén</title>
+<link rel="manifest" href="manifest.json">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+/* ── Reset & variables ───────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* 3A Biotech corporate palette */
+  --teal:   #1A6B64;   /* dark teal — main brand (from the A / BIOTECH) */
+  --teal2:  #248F86;   /* medium teal */
+  --teal3:  #62AFA3;   /* light teal (from logo right side) */
+  --teal-lt:#D2EDEA;   /* very light teal — backgrounds */
+
+  --lime:   #7BA31A;   /* lime green — from the "3" */
+  --lime2:  #9DC41B;   /* bright lime */
+  --lime-lt:#EDF5D0;   /* light lime — backgrounds */
+
+  /* Type colours */
+  --mp-bg:#D2EDEA; --mp-fg:#1A6B64;   /* Materia Prima  — teal */
+  --ma-bg:#D5F5E3; --ma-fg:#1E7A44;   /* Materia Auxiliar — green */
+  --pm-bg:#EDF5D0; --pm-fg:#7BA31A;   /* PM             — lime */
+  --pv-bg:#FDEDEC; --pv-fg:#C0392B;   /* PV             — red */
+
+  --green: #1E7A44;
+  --green-lt:#D5F5E3;
+  --red:   #C0392B;
+  --red-lt:#FDEDEC;
+  --gray:  #F2F7F6;
+  --border:#C8DCDA;
+  --text:  #1C2A29;
+  --radius:12px;
+  --shadow:0 2px 10px rgba(0,0,0,.10);
+  --touch: 52px;
+}
+html{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+  background:#E4EEEC;color:var(--text);min-height:100%;
+  -webkit-tap-highlight-color:transparent;overscroll-behavior:contain;
+}
+
+/* ── Install banner ──────────────────────────────────────────────────── */
+#install-banner{
+  background:var(--teal2);color:#fff;padding:10px 16px;
+  display:none;align-items:center;gap:10px;font-size:12px;
+}
+#install-banner span{flex:1}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+header{
+  background:#000;color:#fff;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 10px rgba(0,0,0,.4);
+}
+.hdr-inner{display:flex;align-items:center;gap:12px;padding:10px 16px}
+
+/* SVG logo mark */
+.logo-mark{flex-shrink:0}
+
+.hdr-text h1{font-size:15px;font-weight:700;line-height:1.2;color:#fff}
+.hdr-text p{font-size:10px;opacity:.65;margin-top:1px;color:#fff}
+.hdr-badge{
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+  border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;
+  margin-left:auto;white-space:nowrap;flex-shrink:0;color:#fff;
+}
+
+/* ── Main ────────────────────────────────────────────────────────────── */
+.app{max-width:640px;margin:0 auto;padding:12px}
+
+/* ── Steps ───────────────────────────────────────────────────────────── */
+.step{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.step-header{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 16px;border-bottom:2px solid var(--teal-lt);
+}
+.step-num{
+  width:30px;height:30px;border-radius:50%;
+  background:var(--teal);color:#fff;
+  font-weight:700;font-size:13px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.step-header h2{font-size:12px;color:var(--teal);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.step-body{padding:14px 16px}
+
+/* ── Drop zone ───────────────────────────────────────────────────────── */
+#drop-zone{
+  border:2px dashed var(--border);border-radius:var(--radius);
+  padding:28px 16px;text-align:center;cursor:pointer;transition:.2s;
+}
+#drop-zone:active,#drop-zone.over{border-color:var(--teal);background:var(--teal-lt)}
+#drop-zone.loaded{border-color:var(--lime);background:var(--lime-lt);cursor:default}
+#drop-zone .dico{font-size:44px;display:block;margin-bottom:8px}
+#drop-zone p{font-size:14px;color:#555}
+#drop-zone strong{color:var(--teal)}
+#file-input{display:none}
+#file-status{margin-top:8px;font-size:12px;font-weight:600;color:var(--teal);min-height:18px}
+
+/* Cache banner */
+#cache-banner{
+  background:var(--teal-lt);border:1.5px solid var(--teal3);
+  border-radius:8px;padding:10px 14px;margin-top:10px;
+  font-size:12px;display:none;
+  justify-content:space-between;align-items:center;gap:8px;
+}
+#cache-banner .cb-info{color:var(--teal);font-weight:600;flex:1;min-width:0}
+#cache-banner .cb-info small{display:block;font-weight:400;font-size:11px;color:#556;margin-top:1px}
+#cache-banner .cb-btn{
+  background:var(--teal);color:#fff;border:none;
+  padding:8px 16px;border-radius:8px;font-size:12px;
+  font-weight:700;cursor:pointer;white-space:nowrap;min-height:40px;flex-shrink:0;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tab{
+  padding:8px 14px;border-radius:20px;border:2px solid var(--border);
+  font-size:12px;font-weight:700;cursor:pointer;background:var(--gray);
+  color:#666;transition:.15s;min-height:40px;display:flex;align-items:center;
+}
+.tab.on-ALL{background:var(--teal);color:#fff;border-color:var(--teal)}
+.tab.on-MP{background:var(--mp-bg);color:var(--mp-fg);border-color:var(--mp-fg)}
+.tab.on-MA{background:var(--ma-bg);color:var(--ma-fg);border-color:var(--ma-fg)}
+.tab.on-PM{background:var(--pm-bg);color:var(--pm-fg);border-color:var(--pm-fg)}
+.tab.on-PV{background:var(--pv-bg);color:var(--pv-fg);border-color:var(--pv-fg)}
+
+/* ── Search ──────────────────────────────────────────────────────────── */
+#search-wrap{position:relative;margin-bottom:10px}
+#search-wrap input{padding-left:38px}
+#search-wrap::before{
+  content:"🔍";position:absolute;left:10px;top:50%;
+  transform:translateY(-50%);font-size:15px;pointer-events:none;
+}
+
+/* ── Lot list ────────────────────────────────────────────────────────── */
+#lot-list{
+  max-height:260px;overflow-y:auto;
+  border:1.5px solid var(--border);border-radius:8px;
+  margin-bottom:12px;-webkit-overflow-scrolling:touch;
+}
+.lot-card{
+  padding:12px 14px;cursor:pointer;border-bottom:1px solid #EEF3F2;
+  transition:.1s;display:flex;justify-content:space-between;align-items:center;
+  min-height:var(--touch);
+}
+.lot-card:last-child{border-bottom:none}
+.lot-card:active{background:var(--teal-lt)}
+.lot-card.selected{background:var(--teal-lt);border-left:4px solid var(--teal)}
+.lot-card .name{font-size:13px;font-weight:600;color:var(--text)}
+.lot-card .sub{font-size:11px;color:#889;margin-top:2px}
+.lot-card .badge-t{
+  font-size:10px;font-weight:700;padding:3px 8px;
+  border-radius:10px;white-space:nowrap;flex-shrink:0;margin-left:8px;
+}
+.bt-MP{background:var(--mp-bg);color:var(--mp-fg)}
+.bt-MA{background:var(--ma-bg);color:var(--ma-fg)}
+.bt-PM{background:var(--pm-bg);color:var(--pm-fg)}
+.bt-PV{background:var(--pv-bg);color:var(--pv-fg)}
+.lot-empty{padding:20px;text-align:center;color:#aaa;font-size:13px}
+
+/* ── Info grid ───────────────────────────────────────────────────────── */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.info-box{background:var(--gray);border-radius:8px;padding:10px 12px}
+.info-box .lbl{font-size:10px;color:#889;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px}
+.info-box .val{font-size:13px;font-weight:700;color:var(--teal);word-break:break-all}
+
+/* ── Fields ──────────────────────────────────────────────────────────── */
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.field label{font-size:11px;font-weight:700;color:#556;text-transform:uppercase;letter-spacing:.3px}
+input,select{
+  width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:8px;
+  font-size:16px;color:var(--text);outline:none;transition:.2s;background:#fff;
+  -webkit-appearance:none;appearance:none;
+}
+input:focus,select:focus{border-color:var(--teal)}
+input[readonly]{background:var(--gray);color:#556}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── Label preview ───────────────────────────────────────────────────── */
+#preview-wrap{display:flex;justify-content:center;margin-bottom:16px;overflow-x:auto}
+.label{
+  width:340px;min-width:290px;
+  border:3px solid var(--teal);border-radius:10px;
+  overflow:hidden;font-family:Arial,sans-serif;
+  box-shadow:0 4px 16px rgba(0,0,0,.15);
+  display:flex;flex-direction:column;
+}
+/* Label header */
+.lhdr{background:#000;color:#fff;text-align:center;padding:8px 8px 6px}
+.lhdr-brand{display:flex;align-items:center;justify-content:center;gap:8px}
+.lhdr .co-3{font-size:20px;font-weight:900;letter-spacing:0;color:var(--lime2)}
+.lhdr .co-a{font-size:20px;font-weight:900;letter-spacing:0;color:var(--teal3)}
+.lhdr .co-bio{font-size:14px;font-weight:900;letter-spacing:3px;color:var(--teal3)}
+.lhdr .sub{font-size:8px;letter-spacing:1px;opacity:.6;margin-top:2px;color:#fff}
+.ltype{text-align:center;padding:5px 8px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+/* Nombre del producto — grande y visible desde lejos */
+.lprod{font-size:32px;font-weight:900;color:var(--teal);padding:10px 14px 10px;border-bottom:2px solid #DDE9E7;line-height:1.2;word-wrap:break-word;text-transform:uppercase;text-align:center}
+/* Zona destacada: Lote + Cantidad lado a lado */
+.lbig{display:flex;border-bottom:2px solid #DDE9E7;background:#fff}
+.lbig-col{flex:1;padding:8px 14px}
+.lbig-col:first-child{border-right:1px solid #DDE9E7}
+.lbig-lbl{font-size:10px;color:#889;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.lbig-val{font-size:24px;font-weight:900;color:var(--text);line-height:1.1}
+.lbig-badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:22px;font-weight:900;line-height:1.2}
+/* Filas secundarias — ancho completo */
+.lrows{background:#fff;padding:0 14px}
+.lrow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #EEF3F2;font-size:12px}
+.lrow:last-child{border-bottom:none}
+.lk{color:#889;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0;margin-right:8px}
+.lv{font-weight:700;color:var(--text);font-size:12px;text-align:right;word-break:break-all}
+.lv-cad{font-weight:900;color:#c0392b;font-size:12px;text-align:right}
+.lv-meses{font-weight:400;font-size:10px;color:#c0392b}
+/* QR centrado al fondo — reducido */
+.lqr-zone{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 14px;border-top:1px solid #DDE9E7;background:#fff}
+.lqr-zone img,.lqr-zone canvas{width:72px!important;height:72px!important}
+.lqr-id{font-size:8px;color:#aaa;text-align:center;max-width:200px;word-break:break-all}
+.lftr{background:var(--gray);border-top:1px solid #DDE9E7;padding:5px 14px;display:flex;justify-content:space-between;font-size:9px;color:#889}
+
+/* Type bar colors */
+.type-MP{background:var(--mp-bg);color:var(--mp-fg)}
+.type-MA{background:var(--ma-bg);color:var(--ma-fg)}
+.type-PM{background:var(--pm-bg);color:var(--pm-fg)}
+.type-PV{background:var(--pv-bg);color:var(--pv-fg)}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px 20px;border-radius:10px;border:none;
+  font-size:15px;font-weight:700;cursor:pointer;transition:.15s;
+  min-height:var(--touch);-webkit-tap-highlight-color:transparent;
+}
+.btn-primary{background:var(--teal);color:#fff}
+.btn-primary:active{background:#124E48}
+.btn-success{background:var(--lime);color:#fff}
+.btn-success:active{background:#5C7A13}
+.btn-share{background:var(--teal2);color:#fff}
+.btn-share:active{background:#1A6B64}
+.btn-ghost{background:var(--gray);color:#445;border:2px solid var(--border)}
+.btn-ghost:active{background:#D8E8E6}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+
+/* ── Print layer ─────────────────────────────────────────────────────── */
+#print-layer{display:none;position:fixed;inset:0;background:#fff;z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
+  body *{visibility:hidden!important}
+  #print-layer,#print-layer *{visibility:visible!important}
+  #print-layer{
+    display:flex!important;
+    position:fixed!important;
+    inset:0!important;
+    background:#fff!important;
+    align-items:flex-start!important;
+    justify-content:flex-start!important;
+    padding:0!important;
+    margin:0!important;
+    overflow:hidden!important;
+  }
+  #print-inner .label{
+    min-width:unset!important;
+    box-sizing:border-box!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    border:none!important;
+    page-break-inside:avoid!important;
+  }
+  #print-layer .no-print{display:none!important}
+}
+
+/* ── Toast ───────────────────────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--teal);color:#fff;padding:12px 24px;border-radius:10px;
+  font-size:13px;font-weight:600;opacity:0;transition:.3s;z-index:9998;
+  white-space:nowrap;pointer-events:none;
+}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* ── Tip ─────────────────────────────────────────────────────────────── */
+.tip{font-size:11px;color:#778;margin-top:10px;padding:8px 12px;background:var(--gray);border-left:3px solid var(--teal3);border-radius:4px;line-height:1.5}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media(max-width:400px){
+  .grid2{grid-template-columns:1fr}
+  .label{width:calc(100vw - 36px)}
+  .actions .btn{flex:1}
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   MÓDULO 2 — GESTIÓN DE ALMACÉN
+   ══════════════════════════════════════════════════════════════════════ */
+#mode-bar{display:flex;background:#111;border-bottom:3px solid var(--teal)}
+.mode-btn{flex:1;padding:13px 8px;border:none;background:transparent;color:rgba(255,255,255,.45);font-size:13px;font-weight:700;cursor:pointer;transition:.2s;min-height:48px;letter-spacing:.3px}
+.mode-btn.active{background:var(--teal);color:#fff}
+#gestion-app{max-width:640px;margin:0 auto;padding:12px;display:none}
+.stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat-box{background:var(--teal-lt);border-radius:8px;padding:10px;text-align:center}
+.stat-box .sv{font-size:22px;font-weight:900;color:var(--teal)}
+.stat-box .sl{font-size:10px;color:#556;margin-top:2px}
+#scan-canvas{display:none}
+#scan-result{background:var(--teal-lt);border:1.5px solid var(--teal);border-radius:8px;padding:12px 14px;margin-bottom:12px;display:none}
+#scan-result .sr-name{font-size:17px;font-weight:900;color:var(--teal);text-transform:uppercase;margin-bottom:3px}
+#scan-result .sr-sub{font-size:12px;color:#556}
+.alm-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.alm-tab{padding:6px 11px;border-radius:20px;border:1.5px solid var(--border);font-size:11px;font-weight:700;cursor:pointer;background:var(--gray);color:#666;min-height:36px;display:flex;align-items:center}
+.alm-tab.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.reg-card{background:var(--gray);border-radius:8px;padding:10px 12px;margin-bottom:8px;border-left:4px solid var(--teal)}
+.reg-card .rc-name{font-size:13px;font-weight:700;color:var(--teal);text-transform:uppercase}
+.reg-card .rc-info{font-size:11px;color:#556;margin-top:2px}
+.reg-card .rc-loc{font-size:11px;font-weight:700;color:#334;margin-top:5px}
+.reg-card .rc-date{font-size:10px;color:#aaa;margin-top:2px}
+.reg-card .rc-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.rc-btn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--border);font-size:11px;font-weight:700;cursor:pointer;background:#fff;color:#445;min-height:36px}
+.rc-btn.danger{border-color:var(--red);color:var(--red)}
+.reg-empty{text-align:center;color:#aaa;font-size:13px;padding:28px 16px}
+
+/* ── QC status badge en etiqueta ─────────────────────────────────────── */
+.qc-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin:0 14px 8px}
+.qc-lib{background:#D5F5E3;color:#1E7A44;border:1.5px solid #1E7A44}
+.qc-ana{background:#FEF9E7;color:#B7770D;border:1.5px solid #E67E22}
+.qc-cua{background:#FDEDEC;color:#C0392B;border:1.5px solid #C0392B}
+/* ── Recordar operario ───────────────────────────────────────────────── */
+.remember-row{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:11px;color:#778;cursor:pointer}
+.remember-row input[type=checkbox]{width:auto;padding:0;margin:0;accent-color:var(--teal)}
+/* ── Pantalla de acceso ──────────────────────────────────────────────── */
+#login-screen{position:fixed;inset:0;background:#000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+.login-box{background:#111;border:1px solid #222;border-radius:16px;padding:36px 32px;width:90%;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.login-logo{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.login-logo .co-3{font-size:36px;font-weight:900;color:#9DC41B}
+.login-logo .co-a{font-size:36px;font-weight:900;color:#62AFA3}
+.login-logo .co-bio{font-size:18px;font-weight:900;color:#248F86;letter-spacing:3px}
+.login-title{color:#aaa;font-size:12px;letter-spacing:2px;text-transform:uppercase}
+#login-input{width:100%;padding:14px;border:2px solid #333;border-radius:10px;background:#1a1a1a;color:#fff;font-size:20px;text-align:center;letter-spacing:6px;outline:none}
+#login-input:focus{border-color:var(--teal)}
+#login-btn{width:100%;padding:14px;border:none;border-radius:10px;background:var(--teal);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+#login-error{color:var(--red);font-size:12px;min-height:16px}
+/* ── Dashboard ───────────────────────────────────────────────────────── */
+#dashboard-app{max-width:640px;margin:0 auto;padding:12px;display:none}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.dash-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;text-align:center}
+.dash-card .dc-val{font-size:34px;font-weight:900;color:var(--teal);line-height:1}
+.dash-card .dc-val.red{color:var(--red)}
+.dash-card .dc-val.ora{color:#E67E22}
+.dash-card .dc-lbl{font-size:11px;color:#889;margin-top:5px;text-transform:uppercase;letter-spacing:.3px}
+.dash-section{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.dash-section-hdr{background:var(--teal);color:#fff;padding:10px 16px;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.dash-section-body{padding:14px 16px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bar-row:last-child{margin-bottom:0}
+.bar-lbl{font-size:11px;font-weight:700;color:#445;min-width:90px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;background:#EAF4F3;border-radius:4px;height:18px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;background:var(--teal);transition:width .4s}
+.bar-fill.lime{background:var(--lime)}
+.bar-fill.red{background:var(--red)}
+.bar-fill.ora{background:#E67E22}
+.bar-num{font-size:11px;font-weight:700;color:var(--teal);min-width:28px;text-align:right}
+.tipo-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #EEF3F2;font-size:12px}
+.tipo-row:last-child{border-bottom:none}
+.tipo-badge{padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700}
+.dash-act-item{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #EEF3F2;font-size:11px;align-items:flex-start}
+.dash-act-item:last-child{border-bottom:none}
+.dash-act-ico{font-size:14px;flex-shrink:0;margin-top:1px}
+.dash-act-info{flex:1;color:#445}
+.dash-act-date{color:#aaa;font-size:10px}
+.dash-empty{text-align:center;color:#aaa;font-size:13px;padding:20px}
+/* ── Alertas dashboard ───────────────────────────────────────────────── */
+.alert-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:6px;font-size:12px;line-height:1.4}
+.alert-item.a-red{background:#FDEDEC;border-left:4px solid var(--red)}
+.alert-item.a-ora{background:#FEF9E7;border-left:4px solid #E67E22}
+.alert-item.a-grn{background:var(--green-lt);border-left:4px solid var(--green)}
+.alert-ico{font-size:18px;flex-shrink:0;line-height:1.3}
+.alert-body .at{font-weight:700;color:var(--text);font-size:12px}
+.alert-body .as{color:#556;margin-top:2px;font-size:11px}
+.no-alerts{text-align:center;color:var(--green);font-size:13px;padding:12px;font-weight:600}
+
+/* ── Buscar lote ─────────────────────────────────────────────────────── */
+#search-result-box{border:1.5px solid var(--border);border-radius:8px;overflow:hidden;display:none;margin-top:8px}
+.sri{padding:11px 14px;border-bottom:1px solid #EEF3F2;cursor:pointer}
+.sri:last-child{border-bottom:none}
+.sri:active{background:var(--teal-lt)}
+.sri-name{font-size:13px;font-weight:700;color:var(--teal)}
+.sri-loc{font-size:12px;color:#445;margin-top:3px}
+.sri-cad{font-size:11px;font-weight:700;margin-top:3px}
+.sri-cad.ok{color:var(--green)}.sri-cad.warn{color:#E67E22}.sri-cad.bad{color:var(--red)}
+.sri-none{padding:14px;text-align:center;color:#aaa;font-size:13px}
+
+/* ── Caducidad en tarjetas ───────────────────────────────────────────── */
+.cad-ok{color:var(--green);font-size:11px;font-weight:700}
+.cad-warn{color:#E67E22;font-size:11px;font-weight:700}
+.cad-bad{color:var(--red);font-size:11px;font-weight:700;animation:blink 1.2s step-start infinite}
+@keyframes blink{50%{opacity:.4}}
+
+/* ── Historial inline ────────────────────────────────────────────────── */
+#hist-panel{display:none}
+.hist-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #EEF3F2;font-size:11px;align-items:flex-start}
+.hist-item:last-child{border-bottom:none}
+.hist-acc{font-weight:700;min-width:80px;color:var(--teal);flex-shrink:0}
+.hist-info{flex:1;color:#445;line-height:1.4}
+.hist-date{color:#aaa;font-size:10px;margin-top:1px}
+
+/* ── Formulario salida inline ────────────────────────────────────────── */
+.salida-form{background:#FDEDEC;border:1.5px solid var(--red);border-radius:8px;padding:12px;margin-top:8px;display:none}
+.salida-form .sf-title{font-weight:700;color:var(--red);font-size:12px;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<!-- Pantalla de acceso -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="co-3">3</span><span class="co-a">A</span>
+      <span class="co-bio">BIOTECH</span>
+    </div>
+    <div class="login-title">Coordinación de Almacén</div>
+    <input type="password" id="login-input" placeholder="••••••" maxlength="20"
+      onkeydown="if(event.key==='Enter')checkLogin()" autocomplete="off">
+    <button id="login-btn" onclick="checkLogin()">Acceder</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- Install banner -->
+<div id="install-banner">
+  <span>📲 ¿Instalar en pantalla de inicio?</span>
+  <button onclick="installApp()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto">Instalar</button>
+  <button onclick="this.parentElement.style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;padding:0 4px">✕</button>
+</div>
+
+<header>
+  <div class="hdr-inner">
+    <!-- 3A Biotech logo mark (SVG, fiel al logo corporativo) -->
+    <svg class="logo-mark" width="40" height="40" viewBox="0 0 100 108" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- Black background -->
+      <rect width="100" height="100" fill="#000"/>
+      <!-- "3" in lime-yellow -->
+      <text x="4" y="78" font-family="Arial Black,Impact,sans-serif" font-size="82" font-weight="900" fill="#9DC41B">3</text>
+      <!-- "A" shape in dark teal + light teal split -->
+      <clipPath id="cl-left"><rect x="52" y="0" width="24" height="100"/></clipPath>
+      <clipPath id="cl-right"><rect x="76" y="0" width="24" height="100"/></clipPath>
+      <text x="50" y="78" font-family="Arial Black,Impact,sans-serif" font-size="82" font-weight="900" fill="#1A6B64" clip-path="url(#cl-left)">A</text>
+      <text x="50" y="78" font-family="Arial Black,Impact,sans-serif" font-size="82" font-weight="900" fill="#62AFA3" clip-path="url(#cl-right)">A</text>
+      <!-- "BIOTECH" text at bottom -->
+      <rect x="0" y="84" width="100" height="24" fill="#000"/>
+      <text x="50" y="101" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#1A6B64" text-anchor="middle" letter-spacing="2">BIOTECH</text>
+    </svg>
+
+    <div class="hdr-text">
+      <h1>Coordinación de Almacén</h1>
+      <p>Almacén Central · 3A Biotech</p>
+    </div>
+    <span class="hdr-badge" id="hdr-badge">Sin datos</span>
+  </div>
+</header>
+
+<!-- Mode bar -->
+<div id="mode-bar">
+  <button class="mode-btn active" id="btn-etiqueta" onclick="setMode('etiqueta')">🏷️ Etiqueta</button>
+  <button class="mode-btn" id="btn-gestion" onclick="setMode('gestion')">📦 Gestión</button>
+  <button class="mode-btn" id="btn-dashboard" onclick="setMode('dashboard')" style="display:none">📊 Dashboard</button>
+</div>
+
+<!-- Print layer -->
+<div id="print-layer">
+  <div id="print-inner"></div>
+  <div class="no-print" style="display:flex;gap:10px;margin-top:16px">
+    <button class="btn btn-ghost" onclick="document.getElementById('print-layer').style.display='none'">✕ Cancelar</button>
+  </div>
+</div>
+
+<div class="app">
+
+<!-- ─── PASO 1: PRODUCTO ──────────────────────────────────────────────── -->
+<div class="step">
+  <div class="step-header">
+    <div class="step-num">1</div>
+    <h2>Producto</h2>
+  </div>
+  <div class="step-body">
+    <div class="field">
+      <label>Nombre del producto *</label>
+      <input type="text" id="f-desc" placeholder="Ej: ECONOX STD" oninput="updateLabel()" autocomplete="off" autocorrect="off" spellcheck="false" style="font-size:18px;font-weight:700;text-transform:uppercase">
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label>Código de producto</label>
+        <input type="text" id="f-ref" placeholder="Ej: PT00167" oninput="onRefInput()" autocomplete="off" style="text-transform:uppercase">
+      </div>
+      <div class="field">
+        <label>Tipo</label>
+        <input type="text" id="f-tipo-display" readonly placeholder="Auto" style="background:var(--gray);color:var(--teal);font-weight:700;text-align:center">
+      </div>
+    </div>
+    <div class="field">
+      <label>Nº de Lote *</label>
+      <div style="display:flex;align-items:stretch">
+        <span style="background:#000;color:#9DC41B;font-weight:900;padding:0 14px;border-radius:8px 0 0 8px;font-size:17px;display:flex;align-items:center;flex-shrink:0;letter-spacing:1px">3A</span>
+        <input type="text" id="f-lote-suffix" placeholder="0425EC-STD/2-IN" oninput="updateLabel()" autocomplete="off" autocorrect="off" spellcheck="false" style="border-radius:0 8px 8px 0;border-left:none;font-size:15px;font-weight:700">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── PASO 2: DATOS DE PRODUCCIÓN ─────────────────────────────────── -->
+<div class="step" id="step3">
+  <div class="step-header">
+    <div class="step-num">2</div>
+    <h2>Datos de producción</h2>
+  </div>
+  <div class="step-body">
+    <div class="grid2">
+      <div class="field">
+        <label>Nº POL — Orden producción</label>
+        <div style="position:relative">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-weight:900;font-size:13px;color:#fff;background:var(--teal);padding:2px 7px;border-radius:5px;pointer-events:none;letter-spacing:.5px">POL-</span>
+          <input type="text" id="f-pol" placeholder="26002356" oninput="onPOLInput()" autocomplete="off" style="padding-left:60px;font-weight:700">
+        </div>
+
+      </div>
+      <div class="field">
+        <label>Cantidad (kg) *</label>
+        <input type="number" id="f-kg" placeholder="Ej: 250" step="0.01" min="0" oninput="updateLabel()" inputmode="decimal">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label>Fecha de fabricación *</label>
+        <input type="date" id="f-fecha" oninput="updateLabel()">
+      </div>
+      <div class="field">
+        <label>Tara IBC — kg en vacío</label>
+        <input type="number" id="f-ibc" placeholder="Ej: 68.5" step="0.1" min="0" oninput="updateLabel()" inputmode="decimal">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label>Operario (opcional)</label>
+        <input type="text" id="f-op" placeholder="Nombre o iniciales" oninput="onOperarioInput()" autocomplete="off">
+        <label class="remember-row" title="Guardar nombre en este dispositivo">
+          <input type="checkbox" id="f-op-remember" onchange="onOperarioRemember()"> Recordar en este dispositivo
+        </label>
+      </div>
+      <div class="field">
+        <label>Nº IBC (opcional)</label>
+        <input type="text" id="f-ibc-id" placeholder="Ej: IBC-07" oninput="updateLabel()" autocomplete="off">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label>Estado QC</label>
+        <select id="f-qc" onchange="updateLabel()">
+          <option value="lib">✅ Liberado</option>
+          <option value="ana">⏳ En análisis</option>
+          <option value="cua">🔴 Cuarentena</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Zona de fabricación</label>
+        <select id="f-almacen" onchange="updateLabel()">
+          <option value="">— Seleccionar zona —</option>
+          <option value="Líquidos">⚗️ Líquidos</option>
+          <option value="Polvos">🧪 Polvos</option>
+          <option value="Envasado">📦 Envasado</option>
+          <option value="Almacén Central">🏭 Almacén Central</option>
+          <option value="Fermentación">🔬 Fermentación</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── PASO 3: VISTA PREVIA ─────────────────────────────────────────── -->
+<div class="step" id="step4">
+  <div class="step-header">
+    <div class="step-num">3</div>
+    <h2>Pegatina — Vista previa</h2>
+  </div>
+  <div class="step-body">
+    <div id="preview-wrap"></div>
+    <div class="field" style="margin:12px 0 4px">
+      <label>Formato de etiqueta</label>
+      <select id="f-formato">
+        <option value="170x148" selected>170 × 148 mm — Papel impresora 3A Biotech ✓</option>
+        <option value="154x173">154 × 173 mm</option>
+        <option value="100x150">100 × 150 mm — Estándar almacén</option>
+        <option value="100x100">100 × 100 mm — Etiqueta cuadrada</option>
+        <option value="105x148">105 × 148 mm — A6</option>
+        <option value="148x210">148 × 210 mm — A5</option>
+        <option value="102x152">102 × 152 mm — 4" × 6" (Zebra / Dymo)</option>
+        <option value="74x105">74 × 105 mm — A7</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button class="btn btn-success" onclick="doPrint()">🖨️ Imprimir / PDF</button>
+      <button class="btn btn-primary" id="btn-bt" onclick="doBluetooth()" style="display:none">🔵 Imprimir por Bluetooth</button>
+      <button class="btn btn-share" id="btn-share" onclick="doShare()" style="display:none">📤 Compartir</button>
+      <button class="btn btn-ghost" onclick="resetForm()">🔄 Nueva</button>
+      <button class="btn btn-primary" onclick="irARegistrarPale()" style="width:100%;margin-top:4px">📦 Registrar este palé en almacén →</button>
+    </div>
+    <div class="tip">
+      <strong>Imprimir / PDF:</strong> abre el diálogo de impresión del sistema. Elige "Guardar como PDF" o selecciona la impresora.<br>
+      <strong>Bluetooth 🔵:</strong> imprime directamente en impresoras ESC/POS conectadas por Bluetooth (Zebra, Brother, Epson…). Solo disponible en Chrome/Edge para Android y PC.<br>
+      <strong>Compartir:</strong> envía la info por WhatsApp, email, etc.
+    </div>
+  </div>
+</div>
+
+</div><!-- /.app -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     MÓDULO 2 — GESTIÓN DE ALMACÉN
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div id="gestion-app" style="display:none">
+
+  <!-- Stats resumen -->
+  <div class="stats-bar">
+    <div class="stat-box"><div class="sv" id="stat-total">0</div><div class="sl">Palés en stock</div></div>
+    <div class="stat-box"><div class="sv" id="stat-alms">0</div><div class="sl">Almacenes con stock</div></div>
+    <div class="stat-box"><div class="sv" id="stat-movs">0</div><div class="sl">Movimientos hoy</div></div>
+  </div>
+
+  <!-- ── PILAR 5: Alertas proactivas ─────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">⚠️</div>
+      <h2>Alertas del almacén</h2>
+    </div>
+    <div class="step-body" id="alertas-body">
+      <div class="no-alerts">Calculando…</div>
+    </div>
+  </div>
+
+  <!-- ── PILAR 2: Buscar lote ──────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">🔍</div>
+      <h2>Buscar lote — ¿dónde está?</h2>
+    </div>
+    <div class="step-body">
+      <div style="display:flex;gap:8px">
+        <input type="text" id="buscar-input" placeholder="Nº lote, producto o referencia…" style="flex:1;font-size:16px" autocomplete="off" autocorrect="off" spellcheck="false" oninput="buscarLote(this.value)">
+        <button class="btn btn-ghost" onclick="document.getElementById('buscar-input').value='';buscarLote('')" style="min-height:var(--touch);padding:10px 14px;font-size:18px">✕</button>
+      </div>
+      <div id="search-result-box"></div>
+    </div>
+  </div>
+
+  <!-- Identificar palé -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">📦</div>
+      <h2>Identificar palé</h2>
+    </div>
+    <div class="step-body">
+      <!-- Escáner QR con cámara -->
+      <div style="margin-bottom:12px">
+        <button class="btn btn-primary" id="btn-camara" onclick="toggleCamara()" style="width:100%;font-size:17px;padding:14px;letter-spacing:.3px">📷 Escanear QR con cámara</button>
+      </div>
+      <div id="camara-wrap" style="display:none;margin-bottom:12px;position:relative;border-radius:12px;overflow:hidden;background:#000">
+        <video id="scan-video" autoplay playsinline muted style="width:100%;display:block;max-height:280px;object-fit:cover"></video>
+        <canvas id="scan-canvas" style="display:none"></canvas>
+        <!-- Marco de guía -->
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:180px;height:180px;border:3px solid rgba(255,255,255,0.8);border-radius:12px;pointer-events:none;box-shadow:0 0 0 2000px rgba(0,0,0,0.35)"></div>
+        <div style="position:absolute;bottom:10px;left:0;right:0;text-align:center;color:#fff;font-size:13px;opacity:.85">Apunta al código QR de la pegatina</div>
+        <button onclick="stopCamara()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;line-height:1">✕</button>
+      </div>
+      <!-- Entrada manual -->
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="text" id="scan-manual" placeholder="O escribe el nº de lote manualmente…" style="flex:1;font-size:16px" autocomplete="off" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter') processManualInput()">
+        <button class="btn btn-primary" onclick="processManualInput()" style="flex-shrink:0;padding:12px 18px;font-size:16px">→</button>
+      </div>
+      <div id="scan-result">
+        <div class="sr-name" id="sr-name">—</div>
+        <div class="sr-sub" id="sr-sub">—</div>
+      </div>
+      <!-- Formulario de asignación (aparece tras escáner) -->
+      <div id="assign-form" style="display:none">
+        <div class="field">
+          <label>Almacén de destino *</label>
+          <select id="g-almacen" onchange="onAlmacenChange()">
+            <option value="">— Seleccionar almacén —</option>
+            <option value="Almacén Central (1)">Almacén Central (1) — Producto Terminado / Entradas y Salidas</option>
+            <option value="Almacén 2">Almacén 2</option>
+            <option value="Almacén 3">Almacén 3</option>
+            <option value="Almacén 4">Almacén 4</option>
+            <option value="Almacén 5">Almacén 5</option>
+            <option value="Almacén 6">Almacén 6</option>
+            <option value="Almacén 7">Almacén 7</option>
+            <option value="Almacén 8">Almacén 8</option>
+            <option value="Almacén 9">Almacén 9</option>
+            <option value="Almacén 10">Almacén 10</option>
+            <option value="Almacén 11">Almacén 11</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Ubicación exacta</label>
+          <select id="g-ubicacion-sel" onchange="onUbicacionChange()" style="display:none"></select>
+          <input type="text" id="g-ubicacion" placeholder="Ej: Fila A · Estantería 3 · Hueco 2" autocomplete="off">
+          <span style="font-size:10px;color:#aaa;margin-top:3px;display:block" id="g-ubicacion-hint">Selecciona primero el almacén</span>
+        </div>
+        <div class="field">
+          <label>Operario (opcional)</label>
+          <input type="text" id="g-operario" placeholder="Nombre o iniciales" autocomplete="off">
+        </div>
+        <div class="actions">
+          <button class="btn btn-success" onclick="registrarEntrada()" style="flex:1">✅ Registrar</button>
+          <button class="btn btn-ghost" onclick="cancelarScan()">✕ Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stock por almacén -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">📋</div>
+      <h2>Stock actual por almacén</h2>
+    </div>
+    <div class="step-body">
+      <div style="position:relative;margin-bottom:10px">
+        <input type="text" id="filtro-stock" placeholder="🔍 Filtrar por lote, producto o referencia…" style="width:100%;font-size:15px;padding:11px 14px 11px 14px" autocomplete="off" autocorrect="off" spellcheck="false" oninput="refreshRegistry()">
+      </div>
+      <div class="alm-tabs">
+        <button class="alm-tab active" onclick="setAlmTab(this,'TODOS')" data-alm="TODOS">Todos</button>
+        <button class="alm-tab" onclick="setAlmTab(this,'Almacén Central (1)')" data-alm="Almacén Central (1)">Central</button>
+        <button class="alm-tab" onclick="setAlmTab(this,'Almacén 2')" data-alm="Almacén 2">Alm.2</button>
+        <button class="alm-tab" onclick="setAlmTab(this,'Almacén 3')" data-alm="Almacén 3">Alm.3</button>
+        <button class="alm-tab" onclick="setAlmTab(this,'Almacén 4')" data-alm="Almacén 4">Alm.4</button>
+        <button class="alm-tab" onclick="setAlmTab(this,'Almacén 5')" data-alm="Almacén 5">Alm.5</button>
+        <button class="alm-tab" onclick="setAlmTab(this,'Almacén 6')" data-alm="Almacén 6">Alm.6</button>
+        <button class="alm-tab" onclick="setAlmTab(this,'Almacén 7')" data-alm="Almacén 7">Alm.7</button>
+        <button class="alm-tab" onclick="setAlmTab(this,'Almacén 8')" data-alm="Almacén 8">Alm.8</button>
+        <button class="alm-tab" onclick="setAlmTab(this,'Almacén 9')" data-alm="Almacén 9">Alm.9</button>
+        <button class="alm-tab" onclick="setAlmTab(this,'Almacén 10')" data-alm="Almacén 10">Alm.10</button>
+        <button class="alm-tab" onclick="setAlmTab(this,'Almacén 11')" data-alm="Almacén 11">Alm.11</button>
+      </div>
+      <div id="reg-list"><div class="reg-empty">Aún no hay palés registrados.<br>Escanea el QR de una pegatina para empezar.</div></div>
+    </div>
+  </div>
+
+  <!-- ── PILAR 4: Historial de movimientos (solo admin) ───────────────── -->
+  <div class="step" id="hist-step" style="display:none">
+    <div class="step-header" onclick="toggleHist()" style="cursor:pointer;user-select:none">
+      <div class="step-num">📋</div>
+      <h2>Historial de movimientos</h2>
+      <span id="hist-toggle-lbl" style="margin-left:auto;color:var(--teal);font-size:12px;font-weight:700">Ver ▾</span>
+    </div>
+    <div class="step-body" id="hist-panel">
+      <div id="hist-list"><div class="no-alerts" style="color:#aaa;font-weight:400">Sin movimientos registrados</div></div>
+      <div style="text-align:center;margin-top:10px">
+        <button class="btn btn-ghost" onclick="exportAlmacenExcel()" style="font-size:12px;min-height:36px;padding:8px 18px">📥 Exportar todo a Excel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Opciones avanzadas (protegidas por PIN) -->
+  <div style="text-align:center;margin-bottom:12px">
+    <button onclick="toggleAdminPanel()" style="background:none;border:none;color:#aaa;font-size:11px;cursor:pointer;padding:8px">⚙️ Opciones avanzadas</button>
+  </div>
+  <div id="admin-panel" style="display:none">
+    <div class="step" style="border:2px solid var(--teal)">
+      <div class="step-header">
+        <div class="step-num">🔒</div>
+        <h2>Administración — Solo responsable de almacén</h2>
+      </div>
+      <div class="step-body">
+        <div id="admin-locked">
+          <div class="field">
+            <label>PIN de acceso</label>
+            <input type="password" id="admin-pin" placeholder="Introduce el PIN" inputmode="numeric" maxlength="6" style="letter-spacing:4px;font-size:20px;text-align:center" onkeydown="if(event.key==='Enter') checkAdminPin()">
+          </div>
+          <button class="btn btn-primary" onclick="checkAdminPin()" style="width:100%">🔓 Desbloquear</button>
+        </div>
+        <div id="admin-unlocked" style="display:none">
+          <p style="font-size:13px;color:#556;margin-bottom:14px">Genera un Excel con <strong>una pestaña por almacén</strong> (stock actual) más una pestaña de <strong>historial de movimientos</strong> completo.</p>
+          <div class="actions" style="flex-direction:column;gap:8px">
+            <button class="btn btn-success" onclick="exportAlmacenExcel()" style="width:100%">📥 Descargar Excel de almacén</button>
+            <div class="field" style="margin-bottom:10px">
+              <label>Cambiar contraseña de acceso</label>
+              <div style="display:flex;gap:8px">
+                <input type="password" id="new-pass-input" placeholder="Nueva contraseña" style="flex:1;font-size:14px" autocomplete="off">
+                <button class="btn btn-primary" onclick="cambiarPasswordUsuario()" style="min-height:44px;padding:10px 16px;font-size:13px">✅ Guardar</button>
+              </div>
+              <small style="font-size:10px;color:#aaa;margin-top:4px;display:block">Contraseña actual: guardada en este dispositivo</small>
+            </div>
+            <button class="btn btn-ghost" onclick="if(confirm('¿Borrar TODOS los registros? Esta acción no se puede deshacer.')) { clearRegistros(); lockAdmin(); }" style="width:100%;border-color:var(--red);color:var(--red)">🗑️ Borrar todos los registros</button>
+            <button class="btn btn-ghost" onclick="lockAdmin()" style="width:100%;font-size:12px">🔒 Bloquear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /#gestion-app -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     MÓDULO 3 — DASHBOARD DE STOCK
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div id="dashboard-app" style="display:none">
+
+  <!-- Cards resumen -->
+  <div class="dash-grid" id="dash-cards"></div>
+
+  <!-- Por almacén -->
+  <div class="dash-section">
+    <div class="dash-section-hdr">📦 Palés por almacén</div>
+    <div class="dash-section-body" id="dash-alm"></div>
+  </div>
+
+  <!-- Por tipo de producto -->
+  <div class="dash-section">
+    <div class="dash-section-hdr">🧪 Por tipo de producto</div>
+    <div class="dash-section-body" id="dash-tipo"></div>
+  </div>
+
+  <!-- Estado de caducidades -->
+  <div class="dash-section">
+    <div class="dash-section-hdr">📅 Estado de caducidades</div>
+    <div class="dash-section-body" id="dash-cad"></div>
+  </div>
+
+  <!-- Actividad reciente -->
+  <div class="dash-section">
+    <div class="dash-section-hdr">🕐 Actividad reciente (últimos 7 días)</div>
+    <div class="dash-section-body" id="dash-act"></div>
+  </div>
+
+</div><!-- /#dashboard-app -->
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ── Mapa de caducidades (meses) por producto ──────────────────────────────────
+const CADUCIDAD_MESES = {
+  'ABUTOX':24,'ABUTOX FORTE':24,'ABUTOX FORTE FF DRY':18,'ABUTOX LQ DRY':12,'ABUTOX-1020':24,'ABUTOX-CT':24,'ABUTOX-G':24,'ANITOX DRY':18,'ANITOX FORTE':18,'ANITOX FORTE PRO':24,'ANITOX FORTE-1':18,'BEBUTOX FORTE FF DRY':24,'BEBUTOX-G20':18,'BIOPROTEC-FC':24,'BIOPROTEC-RT':3,'DEXTROFUN':24,'ECONOX FARM':24,'ECONOX FP':24,'ECONOX FP PLUS':24,'ECONOX FP PLUS DRY':24,'ECONOX STD':24,'ECONOX-FA':24,'ECONOX-FPF':24,'IMA-AC FEED':24,'NATOX MRS':24,'NATOX PREMIUM':24,'NATOX PREMIUM FEED DRY':18,'NATOX PRIME':24,'NATOX RL FORTE':24,'NATOX RL PLUS':24,'NATOX-S FEED DRY':12,'NATTEA-AG':24,'NATURNOX MHT':24,'NATURNOX MT':24,'NATURNOX-15':24,'NATURNOX-15C':24,'NATURNOX-LT':24,'OXICOVER FORTE':24,'OXIROM-15 DRY FEED':12,'OXIROM-G':24,'PALMITOX L70':18,'PALMITOX PG-65':18,'PALMITOX PLV':18,'QUICK FRENACID W':24,'TAINOX-1':24,'TAINOX-19.2':24,'TAINOX-2':24,'TAINOX-2.8':24,'TAINOX-2.8 DK DRY':24,'TAINOX-4.6 LIQUID':24,'TAINOX-7':24,'TANIROX-10 DRY':24,'TEBUTOX FORTE':24,
+  'ANITOX PLUS':18,'AROMA DE CARNE ETO':12,'AROMA DE PAVO 3A':12,'AROMA-AA':24,'ARVIN-20 DRY':24,'ARVIN-BF DRY':24,'ARVIN-DX DRY':18,'ARVIN-LP DRY':24,'ARVIN-TX DRY':24,'BACMYL DRY':24,'BACOUT FM DRY':24,'BACOUT MEAT DRY':24,'BIOCON V FORTE DRY':24,'BIOCON-V DRY':24,'BIOPROTEC-CF CASING DRY':24,'BIOPROTEC-CF DRY':24,'BIOPROTEC-CF NA DRY':24,'BIOPROTEC-LL':24,'BIOPROTEC-M':12,'BIORED DRY':18,'BIOSIN-ED':18,'BIOTEXT-NF DRY':18,'COADYUVANTE PH':24,'DESINCRUSTANTE':24,'DEXTROFUN DRY':24,'ENCOLANTE HA 3A DRY':12,'ENCOLANTE HT 3A DRY':12,'FIBERMEAL-AC DRY':18,'FIBERMEAL-B DRY':24,'FIBERMEAL-C DRY':24,'FIBERMEAL-H DRY':12,'FIBERMEAL-H1 DRY':12,'FIBERTEX-ET DRY':18,'FIBERTEX-M DRY':12,'FIBRA CITRICA 3A DRY':12,'FIBRA DE GUISANTE 200 MICRAS':24,'FIBRA DE GUISANTE 3A':24,'FRITOX':24,'FRITOX LAT':24,'FRITOX-C':24,'FRITOX-C PLUS':24,'FUET-CF DRY':18,'IMA-AC DRY':24,'IMA-AC LIQUID':18,'LACET':18,'LACET PLUS':18,'MEZCLA EM DRY':24,'MP LECIT-35':9,'NATOX DRY':18,'NATURNOX HT':24,'NATURNOX MT DRY':18,'NATURNOX-HT':24,'OXICARE':24,'OXICOVER':24,'OXIFRUIT DRY':18,'OXIGREEN DRY':12,'OXIROM-10 DRY':12,'OXIROM-15 DRY':12,'OXIROM-20 DRY':12,'OXIROM-5 DRY':12,'OXIROM-7DD DRY':12,'OXIROM-C':18,'OXIROM-G FORTE':24,'OXIROM-TG DRY':18,'OXIROM-TGP DRY':18,'OXIROM-W DRY':12,'PALMITOX':20,'PALMITOX GA':24,'PALMITOX PG 65':18,'PALMITOX TB':18,'PALMITOX-PGA-65':18,'PALMITOX-T500':20,'PREDUST HA 3A DRY':12,'PREDUST HT 3A DRY':12,'PREPARADO ALGINATO DRY':24,'PREPARADO FUET 3A':12,'PREPARADO SALCHICHAS DRY':12,'PROTEINA DE POLLO':12,'PV11 DRY':24,'PV5 DRY':18,'PV5 PLUS DRY':18,'REDOXIN DRY':18,'SALES AFL':18,'SALMUERA 20-40-3456 DRY':24,'SECANTE BOMBO-34-56 DRY':24,'TAINOX-10':36,'TAINOX-3':36,'TAINOX-37':24,'TAINOX-4':24,'TAINOX-4 LIQUID':24,'TAINOX-5':24,'TAINOX-50':24,'TAINOX-57':24,'TAINOX-6':36,'TANIROL-AC DRY':24,'TANIROX-7':24,'TANIROX-7 DRY':18,'TEBUTOX 3T':18,'TU-ANTIOX DRY':20,'TU-ANTIOX-3 DRY':20,'TU-ANTIOX-5 DRY':20,'VINAGRE DE ALCOHOL':24,'VITAINOX-E':36,'VITAINOX-E PLUS':24,
+  'CUTIPROTEC':6,'ET TAINOX':24,'ET VITAINOX':36,'EXTRACTO HIDROGLICERINADO DE CALENDULA':18,'EXTRACTO HIDROGLICERINADO DE CENTELLA ASIATICA':18,'EXTRACTO HIDROGLICERINADO DE RUSCO':24,'EXTRACTO HIDROGLICERINADO DE SHIKAKAI':24,'EXTRACTO HIDROGLICERINADO DE TE VERDE':24,'FUNOUT C2':18,'LAUREUM HT':36,'OXIROM-HC':24,
+  'BIOBUTOX AQ':18,'OXIBIOL':18,'OXIBIOL-1':18,'NATTEA GREEN':20
+};
+
+function getMesesCaducidad(desc){
+  if(!desc) return null;
+  const d=desc.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  if(CADUCIDAD_MESES[d]!=null) return CADUCIDAD_MESES[d];
+  for(const key of Object.keys(CADUCIDAD_MESES)){
+    if(d.startsWith(key)||key.startsWith(d)) return CADUCIDAD_MESES[key];
+  }
+  return null;
+}
+function calcFechaCaducidad(fechaFab,meses){
+  if(!fechaFab||!meses) return null;
+  const d=new Date(fechaFab+'T12:00');
+  d.setMonth(d.getMonth()+meses);
+  return d.toLocaleDateString('es-ES');
+}
+
+// ── Estado ────────────────────────────────────────────────────────────────────
+let allLots=[],filteredLots=[],selectedLot=null,currentTab='ALL',deferredInstall=null;
+
+const PREFIX_MAP={MP:{tipo:'Materia Prima',cls:'MP'},MA:{tipo:'Materia Auxiliar',cls:'MA'},PT:{tipo:'PM',cls:'PM'},PV:{tipo:'PV',cls:'PV'},AM:{tipo:'Materia Prima',cls:'MP'}};
+function getPrefix(ref){
+  const key=String(ref||'').replace(/[^A-Za-z]/g,'').substring(0,2).toUpperCase();
+  return PREFIX_MAP[key]||{tipo:'Materia Prima',cls:'MP'};
+}
+
+// ── PWA ───────────────────────────────────────────────────────────────────────
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;document.getElementById('install-banner').style.display='flex';});
+async function installApp(){if(!deferredInstall)return;deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;document.getElementById('install-banner').style.display='none';toast('App instalada!');}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function norm(val){if(val==null)return '';return String(val).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim();}
+function todayISO(){return new Date().toISOString().split('T')[0];}
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// ── Pestaña etiqueta — nuevo flujo sin Excel ──────────────────────────────────
+function getLabelData(){
+  const desc=(document.getElementById('f-desc')||{value:''}).value.trim().toUpperCase();
+  const ref=(document.getElementById('f-ref')||{value:''}).value.trim().toUpperCase();
+  const suffix=(document.getElementById('f-lote-suffix')||{value:''}).value.trim();
+  const lote=suffix?'3A'+suffix:'';
+  const p=getPrefix(ref);
+  return{desc,ref,lote,tipo:p.tipo,cls:p.cls};
+}
+
+function onRefInput(){
+  const ref=(document.getElementById('f-ref')||{value:''}).value.trim().toUpperCase();
+  const p=getPrefix(ref);
+  const disp=document.getElementById('f-tipo-display');
+  if(disp) disp.value=ref?p.tipo:'';
+  updateLabel();
+}
+
+function onPOLInput(){ updateLabel(); }
+function loadSavedPOL(){ try{localStorage.removeItem('3a_last_pol');}catch(e){} }
+
+function onOperarioInput(){
+  updateLabel();
+  if((document.getElementById('f-op-remember')||{checked:false}).checked){
+    try{localStorage.setItem('3a_operario',(document.getElementById('f-op')||{value:''}).value.trim());}catch(e){}
+  }
+}
+function onOperarioRemember(){
+  const checked=(document.getElementById('f-op-remember')||{checked:false}).checked;
+  const val=(document.getElementById('f-op')||{value:''}).value.trim();
+  try{if(checked&&val)localStorage.setItem('3a_operario',val);else if(!checked)localStorage.removeItem('3a_operario');}catch(e){}
+}
+function loadSavedOperario(){
+  try{const s=localStorage.getItem('3a_operario');if(s){const el=document.getElementById('f-op');if(el)el.value=s;const cb=document.getElementById('f-op-remember');if(cb)cb.checked=true;}}catch(e){}
+}
+
+// ── QR ────────────────────────────────────────────────────────────────────────
+function buildQR(el,text){
+  if(!el||!text)return;el.innerHTML='';
+  if(typeof QRCode==='undefined')return;
+  try{new QRCode(el,{text,width:110,height:110,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}catch(e){}
+}
+
+// ── Vista previa etiqueta ─────────────────────────────────────────────────────
+let _updateTimer=null;
+function updateLabel(){clearTimeout(_updateTimer);_updateTimer=setTimeout(_doUpdateLabel,300);}
+
+function _doUpdateLabel(){
+  const ld=getLabelData();
+  const pw=document.getElementById('preview-wrap');
+  if(!ld.desc&&!ld.lote){pw.innerHTML='<div style="text-align:center;color:#aaa;padding:30px;font-size:13px">Rellena el nombre del producto y el nº de lote para ver la vista previa</div>';return;}
+  const polRaw=(document.getElementById('f-pol')||{value:''}).value.trim();const pol=polRaw?'POL-'+polRaw:'';
+  const kg=(document.getElementById('f-kg')||{value:''}).value.trim();
+  const fecha=(document.getElementById('f-fecha')||{value:''}).value;
+  const op=(document.getElementById('f-op')||{value:''}).value.trim();
+  const ibc=(document.getElementById('f-ibc')||{value:''}).value.trim();
+  const ibcId=(document.getElementById('f-ibc-id')||{value:''}).value.trim();
+  const almacen=(document.getElementById('f-almacen')||{value:''}).value.trim();
+  const qcVal=(document.getElementById('f-qc')||{value:'lib'}).value||'lib';
+  const qcMap={lib:{cls:'qc-lib',txt:'✅ Liberado'},ana:{cls:'qc-ana',txt:'⏳ En análisis'},cua:{cls:'qc-cua',txt:'🔴 Cuarentena'}};
+  const qcInfo=qcMap[qcVal]||qcMap.lib;
+  const fechaStr=fecha?new Date(fecha+'T12:00').toLocaleDateString('es-ES'):'—';
+  const mesesCad=getMesesCaducidad(ld.desc);
+  const fechaCad=calcFechaCaducidad(fecha,mesesCad);
+  const qrText=[ld.lote,ld.ref,ld.desc,pol?'POL:'+pol:'',kg?kg+'kg':'',almacen?almacen:'',fecha?'F:'+fechaStr:'',fechaCad?'CAD:'+fechaCad:'','QC:'+qcVal].filter(Boolean).join('|');
+  pw.innerHTML=`<div class="label">
+    <div class="lhdr"><div class="lhdr-brand"><span class="co-3">3</span><span class="co-a">A</span><span class="co-bio">BIOTECH</span></div><div class="sub">ETIQUETA DE ALMACÉN · USO INTERNO</div></div>
+    <div class="ltype type-${ld.cls}">${esc(ld.tipo.toUpperCase())}</div>
+    <div class="lprod">${esc(ld.desc||'—')}</div>
+    <div style="text-align:center;padding:4px 0 2px"><span class="qc-badge ${qcInfo.cls}">${qcInfo.txt}</span></div>
+    <div class="lbig">
+      <div class="lbig-col"><div class="lbig-lbl">Nº Lote</div><div class="lbig-badge type-${ld.cls}">${esc(ld.lote||'—')}</div></div>
+      <div class="lbig-col"><div class="lbig-lbl">Cantidad neta</div><div class="lbig-val">${kg?esc(kg)+' kg':'— kg'}</div></div>
+    </div>
+    <div class="lrows">
+      <div class="lrow"><span class="lk">Fecha fab.</span><span class="lv">${esc(fechaStr)}</span></div>
+      ${fechaCad?`<div class="lrow"><span class="lk">Consumo pref.</span><span class="lv-cad">${esc(fechaCad)} <span class="lv-meses">(${mesesCad} m)</span></span></div>`:''}
+      ${ibc?`<div class="lrow"><span class="lk">Tara IBC</span><span class="lv">${esc(ibc)} kg${ibcId?' ('+esc(ibcId)+')':''}</span></div>`:''}
+      <div class="lrow"><span class="lk">Nº POL</span><span class="lv">${esc(pol)||'—'}</span></div>
+      ${op?`<div class="lrow"><span class="lk">Operario</span><span class="lv">${esc(op)}</span></div>`:''}
+      ${almacen?`<div class="lrow"><span class="lk">Almacén</span><span class="lv">${esc(almacen)}</span></div>`:''}
+      ${ld.ref?`<div class="lrow"><span class="lk">Referencia</span><span class="lv">${esc(ld.ref)}</span></div>`:''}
+    </div>
+    <div class="lqr-zone">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=72x72&color=000000&bgcolor=ffffff&data=${encodeURIComponent(qrText)}" width="72" height="72" alt="QR" style="display:block">
+      <span class="lqr-id">${esc(ld.lote||ld.desc)}</span>
+    </div>
+    <div class="lftr"><span>Impreso: ${new Date().toLocaleDateString('es-ES')}</span><span>3A Biotech · Almacén</span></div>
+  </div>`;
+}
+
+// ── Imprimir ──────────────────────────────────────────────────────────────────
+function doPrint(){
+  const src=document.getElementById('preview-wrap').innerHTML;
+  const pi=document.getElementById('print-inner'),pl=document.getElementById('print-layer');
+  const fmt=(document.getElementById('f-formato')||{value:'154x173'}).value||'154x173';
+  const [w,h]=fmt.split('x');
+  let styleEl=document.getElementById('dynamic-page-style');
+  if(!styleEl){styleEl=document.createElement('style');styleEl.id='dynamic-page-style';document.head.appendChild(styleEl);}
+  styleEl.textContent=`@page{size:${w}mm ${h}mm;margin:0}`;
+  pi.style.width=w+'mm';pi.style.height=h+'mm';
+  pi.innerHTML=src;pl.style.display='flex';
+  setTimeout(()=>{window.print();pl.style.display='none';},300);
+}
+
+async function doShare(){
+  const ld=getLabelData();if(!ld.desc){toast('Rellena el nombre del producto primero');return;}
+  const pol=(document.getElementById('f-pol')||{value:''}).value.trim();
+  const kg=(document.getElementById('f-kg')||{value:''}).value.trim();
+  const text=`🏷️ PEGATINA 3A BIOTECH\nProducto: ${ld.desc}\nLote: ${ld.lote}\n${kg?'Cantidad: '+kg+' kg\n':''}${pol?'POL: '+pol+'\n':''}Referencia: ${ld.ref}`;
+  try{await navigator.share({title:'Pegatina 3A Biotech',text});}catch(e){if(e.name!=='AbortError')doPrint();}
+}
+
+async function doBluetooth(){
+  const ld=getLabelData();if(!ld.desc){toast('Rellena el nombre del producto primero');return;}
+  if(!navigator.bluetooth){alert('Web Bluetooth no disponible.');return;}
+  toast('🔵 Buscando impresora…');
+  try{
+    const device=await navigator.bluetooth.requestDevice({filters:[{services:['000018f0-0000-1000-8000-00805f9b34fb']},{namePrefix:'Zebra'},{namePrefix:'Brother'}],optionalServices:['000018f0-0000-1000-8000-00805f9b34fb']});
+    const server=await device.gatt.connect(),services=await server.getPrimaryServices();
+    let writeChar=null;
+    for(const svc of services){try{const chars=await svc.getCharacteristics();for(const c of chars){if(c.properties.write||c.properties.writeWithoutResponse){writeChar=c;break;}}}catch{}if(writeChar)break;}
+    if(!writeChar){alert('No se encontró canal de escritura.');server.disconnect();return;}
+    const pol=(document.getElementById('f-pol')||{value:''}).value.trim();
+    const kg=(document.getElementById('f-kg')||{value:''}).value.trim();
+    const enc=new TextEncoder(),cmd=[],b=(...bytes)=>bytes.forEach(v=>cmd.push(v)),t=s=>{enc.encode(s).forEach(v=>cmd.push(v));cmd.push(0x0A);};
+    b(0x1B,0x40);b(0x1B,0x61,0x01);b(0x1D,0x21,0x11);t('3A BIOTECH');b(0x1D,0x21,0x00);t('ETIQUETA ALMACEN');t('---');b(0x1B,0x61,0x00);t(ld.tipo.toUpperCase());b(0x1D,0x21,0x10);t(ld.desc.substring(0,20));b(0x1D,0x21,0x00);t('LOTE: '+ld.lote);t('CANT: '+(kg?kg+' kg':'—'));t('POL:  '+(pol||'—'));t('REF:  '+ld.ref);b(0x0A,0x0A,0x0A);b(0x1D,0x56,0x01);
+    const data=new Uint8Array(cmd);
+    for(let i=0;i<data.length;i+=512){await writeChar.writeValueWithoutResponse(data.slice(i,i+512));await new Promise(r=>setTimeout(r,50));}
+    server.disconnect();toast('✅ Enviado a impresora Bluetooth');
+  }catch(e){if(e.name==='NotFoundError')toast('Búsqueda cancelada');else alert('Error Bluetooth: '+e.message);}
+}
+
+function resetForm(){
+  selectedLot=null;
+  ['f-desc','f-ref','f-lote-suffix','f-kg','f-ibc','f-ibc-id','f-almacen'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const td=document.getElementById('f-tipo-display');if(td)td.value='';
+  const qc=document.getElementById('f-qc');if(qc)qc.value='lib';
+  const fd=document.getElementById('f-fecha');if(fd)fd.value=todayISO();
+  document.getElementById('preview-wrap').innerHTML='<div style="text-align:center;color:#aaa;padding:30px;font-size:13px">Rellena el nombre del producto y el nº de lote para ver la vista previa</div>';
+loadSavedOperario();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function irARegistrarPale(){
+  const ld=getLabelData();if(!ld.lote){toast('Introduce el nº de lote primero');return;}
+  const pol=(document.getElementById('f-pol')||{value:''}).value.trim();
+  const kg=(document.getElementById('f-kg')||{value:''}).value.trim();
+  const fecha=(document.getElementById('f-fecha')||{value:''}).value;
+  const fechaStr=fecha?new Date(fecha+'T12:00').toLocaleDateString('es-ES'):'';
+  const mesesCad=getMesesCaducidad(ld.desc);
+  const fechaCad=calcFechaCaducidad(fecha,mesesCad)||'';
+  const qrText=[ld.lote,ld.ref,ld.desc,pol?'POL:'+pol:'',kg?kg+'kg':'',fecha?'F:'+fechaStr:'',fechaCad?'CAD:'+fechaCad:''].filter(Boolean).join('|');
+  setMode('gestion');
+  setTimeout(()=>{processQRData(qrText);},150);
+  toast('📦 Lote cargado en Gestión Almacén');
+}
+
+function toast(msg,dur=2800){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+// ── Modos ─────────────────────────────────────────────────────────────────────
+function setMode(mode){
+  const appEt=document.querySelector('.app'),appGe=document.getElementById('gestion-app'),appDa=document.getElementById('dashboard-app');
+  const btnEt=document.getElementById('btn-etiqueta'),btnGe=document.getElementById('btn-gestion'),btnDa=document.getElementById('btn-dashboard');
+  appEt.style.display='none';appGe.style.display='none';appDa.style.display='none';
+  btnEt.classList.remove('active');btnGe.classList.remove('active');btnDa.classList.remove('active');
+  stopCamara();
+  if(mode==='etiqueta'){appEt.style.display='block';btnEt.classList.add('active');}
+  else if(mode==='gestion'){appGe.style.display='block';btnGe.classList.add('active');refreshRegistry();updateStats();buildAlertas();}
+  else if(mode==='dashboard'){appDa.style.display='block';btnDa.classList.add('active');buildDashboard();}
+}
+
+// ── Ubicaciones Almacén Central ────────────────────────────────────────────────
+const UBICACIONES={'Almacén Central (1)':(()=>{
+  const locs=['— Sin asignar —','── ZONA ESTANTERÍAS ──'];
+  ['A','B','C','D'].forEach(e=>['N1 — Bajo','N2','N3','N4 — Alto'].forEach((nv,ni)=>['FR','TR'].forEach(cara=>{for(let h=1;h<=9;h++) locs.push(`EST-${e}${cara} · ${nv.split(' — ')[0]} · H${h}`);})));
+  locs.push('── ZONA SUELO (derecha) ──');
+  for(let f=1;f<=6;f++) locs.push(`SUELO · Fila ${f}`);
+  locs.push('── OTRO ──','Otro / Personalizado');
+  return locs;
+})()};
+
+function onAlmacenChange(){
+  const alm=document.getElementById('g-almacen').value;
+  const sel=document.getElementById('g-ubicacion-sel'),inp=document.getElementById('g-ubicacion'),hint=document.getElementById('g-ubicacion-hint');
+  const locs=UBICACIONES[alm];
+  if(locs){
+    sel.innerHTML=locs.map(l=>{const isG=l.startsWith('──');return isG?`<option disabled style="background:#f0f0f0;color:#888;font-size:10px">${l}</option>`:`<option value="${l==='— Sin asignar —'?'':l}">${l}</option>`;}).join('');
+    sel.style.display='block';inp.style.display='none';inp.value='';
+    if(hint){hint.textContent='📍 Almacén Central — ubicaciones predefinidas (provisional)';hint.style.color='var(--teal)';}
+  } else {
+    sel.style.display='none';inp.style.display='block';
+    inp.placeholder=alm?'Ej: Zona A · Fila 2':'Selecciona primero el almacén';
+    if(hint){hint.textContent=alm?'Escribe la ubicación libremente':'Selecciona primero el almacén';hint.style.color='#aaa';}
+  }
+}
+function onUbicacionChange(){
+  const sel=document.getElementById('g-ubicacion-sel'),inp=document.getElementById('g-ubicacion');
+  if(sel.value==='Otro / Personalizado'){sel.style.display='none';inp.style.display='block';inp.value='';inp.focus();}
+}
+function getUbicacionValue(){
+  const sel=document.getElementById('g-ubicacion-sel'),inp=document.getElementById('g-ubicacion');
+  if(sel&&sel.style.display!=='none') return sel.value;
+  return inp?inp.value.trim():'';
+}
+
+// ── Identificación ────────────────────────────────────────────────────────────
+let scannedLot=null;
+
+function checkURLParams(){
+  const p=new URLSearchParams(window.location.search);
+  if(!p.get('lote')) return;
+  processQRData([p.get('lote')||'',p.get('ref')||'',p.get('desc')||'',p.get('pol')?'POL:'+p.get('pol'):'',p.get('kg')?p.get('kg')+'kg':''].filter(Boolean).join('|'));
+  setMode('gestion');
+}
+
+function processQRData(raw){
+  const parts=raw.split('|');
+  const lot={lote:parts[0]||'',ref:parts[1]||'',desc:parts[2]||'',pol:'',kg:'',fecha:'',cad:'',almacen:''};
+  parts.forEach(p=>{
+    if(p.startsWith('POL:')) lot.pol=p.slice(4);
+    else if(/^\d[\d.,]*kg$/.test(p)) lot.kg=p.replace('kg','').trim();
+    else if(p.startsWith('F:')) lot.fecha=p.slice(2);
+    else if(p.startsWith('CAD:')) lot.cad=p.slice(4);
+    else if(p.startsWith('Alm')) lot.almacen=p;
+  });
+  if(!lot.lote){toast('QR no reconocido');return;}
+  scannedLot=lot;
+  document.getElementById('sr-name').textContent=lot.desc||lot.lote;
+  document.getElementById('sr-sub').textContent='Lote: '+lot.lote+(lot.kg?' · '+lot.kg+' kg':'');
+  document.getElementById('scan-result').style.display='block';
+  document.getElementById('assign-form').style.display='block';
+  if(lot.almacen){document.getElementById('g-almacen').value=lot.almacen;onAlmacenChange();}
+  const ex=getRegistros().find(r=>r.lote===lot.lote&&r.estado==='activo');
+  if(ex) toast('ℹ️ Ya en '+ex.almacen+'. Puedes trasladarlo.');
+  else toast('✅ QR leído');
+}
+
+function processQRImage(input){
+  const file=input.files[0];if(!file)return;
+  if(typeof jsQR==='undefined'){alert('jsQR no cargó.');return;}
+  toast('⏳ Procesando…');
+  const reader=new FileReader();
+  reader.onload=e=>{const img=new Image();img.onload=()=>{
+    const canvas=document.createElement('canvas'),MAX=1200,scale=Math.min(1,MAX/Math.max(img.width,img.height));
+    canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);
+    const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+    const code=jsQR(imgData.data,imgData.width,imgData.height,{inversionAttempts:'attemptBoth'});
+    if(code&&code.data)processQRData(code.data);else toast('⚠️ No se detectó QR.');
+    input.value='';
+  };img.src=e.target.result;};
+  reader.readAsDataURL(file);
+}
+
+let _scanStream=null,_scanRAF=null,_scanCooldown=false;
+function beepScan(){try{const ctx=new(window.AudioContext||window.webkitAudioContext)(),osc=ctx.createOscillator(),g=ctx.createGain();osc.connect(g);g.connect(ctx.destination);osc.type='sine';osc.frequency.value=1200;g.gain.setValueAtTime(0.4,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.18);osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.18);}catch(e){}}
+
+async function toggleCamara(){
+  if(_scanStream){stopCamara();return;}
+  const wrap=document.getElementById('camara-wrap'),video=document.getElementById('scan-video'),btn=document.getElementById('btn-camara');
+  try{
+    _scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+    video.srcObject=_scanStream;await video.play();wrap.style.display='block';btn.textContent='⏹ Detener';btn.style.background='#e55';_doScanFrame();
+  }catch(err){toast(err.name==='NotAllowedError'?'⚠️ Permiso cámara denegado':'Error cámara: '+err.message);}
+}
+function stopCamara(){
+  if(_scanRAF){cancelAnimationFrame(_scanRAF);_scanRAF=null;}
+  if(_scanStream){_scanStream.getTracks().forEach(t=>t.stop());_scanStream=null;}
+  document.getElementById('camara-wrap').style.display='none';
+  const btn=document.getElementById('btn-camara');btn.textContent='📷 Escanear QR con cámara';btn.style.background='';
+}
+function _doScanFrame(){
+  if(!_scanStream)return;
+  const video=document.getElementById('scan-video'),canvas=document.getElementById('scan-canvas');
+  if(video.readyState===video.HAVE_ENOUGH_DATA){
+    canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+    const ctx=canvas.getContext('2d');ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    if(!_scanCooldown){
+      const code=jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height,{inversionAttempts:'attemptBoth'});
+      if(code&&code.data){_scanCooldown=true;beepScan();stopCamara();if(code.data.includes('|'))processQRData(code.data);else{document.getElementById('scan-manual').value=code.data;processManualInput();}setTimeout(()=>{_scanCooldown=false;},2000);return;}
+    }
+  }
+  _scanRAF=requestAnimationFrame(_doScanFrame);
+}
+
+function processManualInput(){
+  const val=document.getElementById('scan-manual').value.trim();
+  if(!val){toast('Introduce el nº de lote');return;}
+  if(val.includes('|')){processQRData(val);return;}
+  scannedLot={lote:val,ref:'',desc:val,pol:'',kg:'',fecha:'',cad:'',almacen:''};
+  document.getElementById('sr-name').textContent=val;
+  document.getElementById('sr-sub').textContent='Introduce los datos adicionales';
+  document.getElementById('scan-result').style.display='block';
+  document.getElementById('assign-form').style.display='block';
+  document.getElementById('scan-manual').value='';
+  toast('ℹ️ Lote introducido');
+}
+
+function cancelarScan(){
+  scannedLot=null;
+  ['scan-result','assign-form'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('g-almacen').value='';
+  document.getElementById('g-ubicacion').value='';
+  const sel=document.getElementById('g-ubicacion-sel');if(sel){sel.value='';sel.style.display='none';}
+  document.getElementById('g-ubicacion').style.display='block';
+  document.getElementById('g-operario').value='';
+}
+
+// ── Registro ──────────────────────────────────────────────────────────────────
+// ── Firebase + localStorage sync ──────────────────────────────────────────────
+const FB_CONFIG={apiKey:'AIzaSyBJOeD6kuzwZLgg32_z_BW43T_K5s0mdKY',authDomain:'abiotech-almacen.firebaseapp.com',databaseURL:'https://abiotech-almacen-default-rtdb.firebaseio.com',projectId:'abiotech-almacen',storageBucket:'abiotech-almacen.firebasestorage.app',messagingSenderId:'1016473539496',appId:'1:1016473539496:web:9aa7db60e6f4cbffc7c39d'};
+let _fbDb=null,_registrosCache=[];
+function initFirebase(){
+  try{
+    firebase.initializeApp(FB_CONFIG);
+    _fbDb=firebase.database();
+    _fbDb.ref('registros').on('value',snap=>{
+      const val=snap.val();
+      _registrosCache=val?JSON.parse(val):[];
+      try{localStorage.setItem('3a_registros',JSON.stringify(_registrosCache));}catch(e){}
+      refreshRegistry();updateStats();buildAlertas();
+      toast('🔄 Sincronizado',1500);
+    },err=>{
+      console.warn('Firebase error:',err);
+      _registrosCache=JSON.parse(localStorage.getItem('3a_registros')||'[]');
+    });
+  }catch(e){
+    console.warn('Firebase no disponible, usando localStorage');
+    _registrosCache=JSON.parse(localStorage.getItem('3a_registros')||'[]');
+  }
+}
+function getRegistros(){return _registrosCache;}
+function saveRegistros(r){
+  _registrosCache=r;
+  try{localStorage.setItem('3a_registros',JSON.stringify(r));}catch(e){}
+  if(_fbDb){
+    _fbDb.ref('registros').set(JSON.stringify(r)).catch(e=>console.warn('Firebase write error:',e));
+  }
+}
+
+function registrarEntrada(){
+  if(!scannedLot){toast('Primero escanea un palé');return;}
+  const almacen=document.getElementById('g-almacen').value;
+  if(!almacen){toast('Selecciona el almacén');return;}
+  const ubicacion=getUbicacionValue(),operario=document.getElementById('g-operario').value.trim(),now=new Date().toLocaleString('es-ES');
+  const mesesCad=getMesesCaducidad(scannedLot.desc);
+  let fechaFabISO='';
+  if(scannedLot.fecha){const p=scannedLot.fecha.split('/');if(p.length===3)fechaFabISO=`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;}
+  const fechaCaducidad=scannedLot.cad||calcFechaCaducidad(fechaFabISO,mesesCad)||'';
+  const registros=getRegistros(),existente=registros.find(r=>r.lote===scannedLot.lote);
+  if(existente){
+    existente.historial.push({fecha:now,accion:existente.estado==='activo'?'Traslado':'Reentrada',almacenOrigen:existente.almacen,almacenDestino:almacen,ubicacion:ubicacion||'—',operario:operario||'—'});
+    existente.almacen=almacen;existente.ubicacion=ubicacion;existente.estado='activo';existente.fechaUltimoMov=now;
+    if(fechaCaducidad&&!existente.fechaCaducidad){existente.fechaCaducidad=fechaCaducidad;existente.mesesCad=mesesCad;}
+    toast('↔️ Palé trasladado a '+almacen);
+  } else {
+    const pInfo=getPrefix(scannedLot.ref||scannedLot.desc);
+  registros.push({id:Date.now(),lote:scannedLot.lote,ref:scannedLot.ref,desc:scannedLot.desc,cls:pInfo.cls,tipo:pInfo.tipo,kg:scannedLot.kg,pol:scannedLot.pol,fechaFab:scannedLot.fecha,fechaCaducidad,mesesCad,almacen,ubicacion,estado:'activo',fechaEntrada:now,fechaUltimoMov:now,historial:[{fecha:now,accion:'Entrada',almacenOrigen:'—',almacenDestino:almacen,ubicacion:ubicacion||'—',operario:operario||'—'}]});
+    toast('✅ Palé registrado en '+almacen);
+  }
+  saveRegistros(registros);cancelarScan();refreshRegistry();updateStats();buildAlertas();renderHistorial();
+}
+
+function mostrarFormSalida(id){document.getElementById('sf-'+id).style.display='block';}
+function cancelarSalida(id){document.getElementById('sf-'+id).style.display='none';}
+function confirmarSalida(lote,id){
+  const operario=(document.getElementById('sf-op-'+id)||{value:''}).value.trim()||'—';
+  const motivo=(document.getElementById('sf-mot-'+id)||{value:'Salida'}).value||'Salida';
+  const registros=getRegistros(),r=registros.find(x=>x.lote===lote);if(!r)return;
+  const now=new Date().toLocaleString('es-ES');
+  r.historial.push({fecha:now,accion:'Salida — '+motivo,almacenOrigen:r.almacen,almacenDestino:'—',ubicacion:'—',operario});
+  r.estado='salida';r.fechaUltimoMov=now;
+  saveRegistros(registros);refreshRegistry();updateStats();buildAlertas();renderHistorial();
+  toast('📤 Salida registrada: '+lote);
+}
+
+function editarUbicacion(lote){
+  const registros=getRegistros(),r=registros.find(x=>x.lote===lote);if(!r)return;
+  const nueva=prompt('Ubicación para '+lote+':',r.ubicacion||'');if(nueva===null)return;
+  const now=new Date().toLocaleString('es-ES');
+  r.historial.push({fecha:now,accion:'Cambio de ubicación',almacenOrigen:r.almacen,almacenDestino:r.almacen,ubicacion:nueva||'—',operario:'—'});
+  r.ubicacion=nueva;r.fechaUltimoMov=now;
+  saveRegistros(registros);refreshRegistry();buildAlertas();toast('📍 Ubicación actualizada');
+}
+
+// ── Stock ─────────────────────────────────────────────────────────────────────
+let currentAlmTab='TODOS';
+function setAlmTab(btn,alm){document.querySelectorAll('.alm-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentAlmTab=alm;refreshRegistry();}
+
+function getCadInfo(r){
+  if(!r.fechaCaducidad)return null;
+  const p=r.fechaCaducidad.split('/');if(p.length!==3)return null;
+  const diff=Math.floor((new Date(+p[2],+p[1]-1,+p[0])-new Date())/86400000);
+  if(diff<0)return{text:'⚠️ CADUCADO ('+r.fechaCaducidad+')',cls:'cad-bad'};
+  if(diff<90)return{text:'⏰ Caduca: '+r.fechaCaducidad+' ('+Math.ceil(diff/30)+' m)',cls:'cad-warn'};
+  return{text:'✅ Caduca: '+r.fechaCaducidad,cls:'cad-ok'};
+}
+
+function refreshRegistry(){
+  const q=(document.getElementById('filtro-stock')||{value:''}).value.trim().toLowerCase();
+  let lista=getRegistros().filter(r=>r.estado==='activo');
+  if(currentAlmTab!=='TODOS')lista=lista.filter(r=>r.almacen===currentAlmTab);
+  if(q)lista=lista.filter(r=>(r.lote||'').toLowerCase().includes(q)||(r.desc||'').toLowerCase().includes(q)||(r.ref||'').toLowerCase().includes(q));
+  const cont=document.getElementById('reg-list');
+  if(!lista.length){cont.innerHTML='<div class="reg-empty">No hay palés.<br>Escanea una pegatina para registrar.</div>';return;}
+  cont.innerHTML=lista.map(r=>{
+    const cad=getCadInfo(r),loteEsc=esc(r.lote).replace(/'/g,"\\'");
+    return `<div class="reg-card" id="card-${r.id}">
+      <div class="rc-name">${esc(r.desc||r.lote)}</div>
+      <div class="rc-info">Lote: ${esc(r.lote)}${r.ref?' · '+esc(r.ref):''}${r.kg?' · '+r.kg+' kg':''}</div>
+      <div class="rc-info">📦 ${esc(r.almacen)}</div>
+      <div class="rc-loc">📍 ${r.ubicacion?esc(r.ubicacion):'<em style="color:#aaa">Sin ubicación asignada</em>'}</div>
+      ${cad?`<div class="rc-date ${cad.cls}">${cad.text}</div>`:''}
+      <div class="rc-date">Entrada: ${r.fechaEntrada}</div>
+      <div class="rc-actions">
+        <button class="rc-btn" onclick="editarUbicacion('${loteEsc}')">📍 Ubicación</button>
+        <button class="rc-btn danger" onclick="mostrarFormSalida('${r.id}')">📤 Salida</button>
+      </div>
+      <div class="salida-form" id="sf-${r.id}">
+        <div class="sf-title">⚠️ Confirmar salida — ${esc(r.desc||r.lote)}</div>
+        <div class="field" style="margin-bottom:8px"><label>Operario</label><input type="text" id="sf-op-${r.id}" style="font-size:14px" autocomplete="off"></div>
+        <div class="field" style="margin-bottom:8px"><label>Motivo</label>
+          <select id="sf-mot-${r.id}" style="font-size:14px">
+            <option value="Venta / Expedición">📦 Venta / Expedición</option>
+            <option value="Consumo en producción">🏭 Consumo en producción</option>
+            <option value="Caducado / Retirada">⚠️ Caducado / Retirada</option>
+            <option value="Devolución">↩️ Devolución</option>
+            <option value="Merma / Pérdida">📉 Merma / Pérdida</option>
+          </select>
+        </div>
+        <div class="actions" style="gap:8px">
+          <button class="btn" onclick="confirmarSalida('${loteEsc}','${r.id}')" style="background:var(--red);color:#fff;min-height:44px;font-size:13px;flex:1">✅ Confirmar salida</button>
+          <button class="btn btn-ghost" onclick="cancelarSalida('${r.id}')" style="min-height:44px;padding:10px 16px">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateStats(){
+  const registros=getRegistros(),activos=registros.filter(r=>r.estado==='activo');
+  const hoy=new Date().toLocaleDateString('es-ES');
+  document.getElementById('stat-total').textContent=activos.length;
+  document.getElementById('stat-alms').textContent=new Set(activos.map(r=>r.almacen)).size;
+  document.getElementById('stat-movs').textContent=registros.reduce((n,r)=>n+(r.historial||[]).filter(h=>(h.fecha||'').startsWith(hoy)).length,0);
+  buildAlertas();
+}
+
+// ── Alertas ───────────────────────────────────────────────────────────────────
+function buildAlertas(){
+  const body=document.getElementById('alertas-body');if(!body)return;
+  const activos=getRegistros().filter(r=>r.estado==='activo'),items=[];
+  const caducados=activos.filter(r=>{const c=getCadInfo(r);return c&&c.cls==='cad-bad';});
+  if(caducados.length)items.push(`<div class="alert-item a-red"><div class="alert-ico">🚨</div><div class="alert-body"><div class="at">${caducados.length} palé${caducados.length>1?'s':''} CADUCADO${caducados.length>1?'S':''}</div><div class="as">${caducados.map(r=>r.desc||r.lote).slice(0,3).join(', ')}</div></div></div>`);
+  const proximos=activos.filter(r=>{const c=getCadInfo(r);return c&&c.cls==='cad-warn';});
+  if(proximos.length)items.push(`<div class="alert-item a-ora"><div class="alert-ico">⏰</div><div class="alert-body"><div class="at">${proximos.length} palé${proximos.length>1?'s':''} con caducidad próxima</div><div class="as">${proximos.map(r=>r.desc||r.lote).slice(0,3).join(', ')}</div></div></div>`);
+  const sinUbic=activos.filter(r=>!r.ubicacion);
+  if(sinUbic.length)items.push(`<div class="alert-item a-ora"><div class="alert-ico">📍</div><div class="alert-body"><div class="at">${sinUbic.length} palé${sinUbic.length>1?'s':''} sin ubicación asignada</div></div></div>`);
+  body.innerHTML=items.length?items.join(''):'<div class="no-alerts">✅ Todo en orden</div>';
+}
+
+// ── Búsqueda ──────────────────────────────────────────────────────────────────
+function buscarLote(q){
+  const box=document.getElementById('search-result-box'),query=(q||'').trim().toLowerCase();
+  if(!query){box.style.display='none';box.innerHTML='';return;}
+  const results=getRegistros().filter(r=>r.lote.toLowerCase().includes(query)||(r.desc||'').toLowerCase().includes(query)||(r.ref||'').toLowerCase().includes(query)).slice(0,10);
+  if(!results.length){box.innerHTML='<div class="sri-none">No se encontró ningún palé</div>';box.style.display='block';return;}
+  box.innerHTML=results.map(r=>{const cad=getCadInfo(r),estado=r.estado==='activo'?`📦 ${esc(r.almacen)}${r.ubicacion?' · 📍 '+esc(r.ubicacion):''}`:`<span style="color:#aaa">📤 Fuera del almacén</span>`;return `<div class="sri"><div class="sri-name">${esc(r.desc||r.lote)}</div><div class="sri-loc">Lote: ${esc(r.lote)}</div><div class="sri-loc">${estado}</div>${cad?`<div class="sri-cad ${cad.cls}">${cad.text}</div>`:''}</div>`;}).join('');
+  box.style.display='block';
+}
+
+// ── Historial ─────────────────────────────────────────────────────────────────
+function toggleHist(){
+  const panel=document.getElementById('hist-panel'),lbl=document.getElementById('hist-toggle-lbl');
+  const visible=panel.style.display==='block';
+  panel.style.display=visible?'none':'block';lbl.textContent=visible?'Ver ▾':'Ocultar ▴';
+  if(!visible)renderHistorial();
+}
+
+function renderHistorial(){
+  const panel=document.getElementById('hist-panel');if(!panel||panel.style.display==='none')return;
+  const registros=getRegistros(),cont=document.getElementById('hist-list');
+  if(!registros.length){cont.innerHTML='<div class="no-alerts" style="color:#aaa">Sin movimientos</div>';return;}
+  const sorted=[...registros].sort((a,b)=>b.fechaUltimoMov.localeCompare(a.fechaUltimoMov));
+  cont.innerHTML=sorted.map(r=>{
+    const hist=r.historial||[],ent=hist.find(h=>h.accion==='Entrada'||h.accion==='Reentrada'),sal=[...hist].reverse().find(h=>h.accion.startsWith('Salida')),tras=hist.filter(h=>h.accion==='Traslado'),activo=r.estado==='activo';
+    let tiempoStr='';
+    if(ent){const fin=sal?new Date(sal.fecha.split(',')[0].split('/').reverse().join('-')):new Date(),ini=new Date(ent.fecha.split(',')[0].split('/').reverse().join('-')),dias=Math.floor((fin-ini)/86400000);if(!isNaN(dias)&&dias>=0)tiempoStr=dias===0?'Mismo día':dias+' días';}
+    const badge=activo?`<span style="background:var(--green-lt);color:var(--green);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">● EN ALMACÉN</span>`:`<span style="background:#FDEDEC;color:var(--red);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">● SALIDA</span>`;
+    const cadInfo=getCadInfo(r),cadStr=cadInfo?`<span class="${cadInfo.cls}" style="font-size:11px">${cadInfo.text}</span>`:'';
+    return `<div style="background:#fff;border-radius:10px;box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden;border-left:4px solid ${activo?'var(--green)':'var(--red)'}">
+      <div style="padding:10px 14px;border-bottom:1px solid #EEF3F2;display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div><div style="font-size:14px;font-weight:700;color:var(--teal);text-transform:uppercase">${esc(r.desc||r.lote)}</div><div style="font-size:11px;color:#556">Lote: <strong>${esc(r.lote)}</strong>${r.kg?' · '+r.kg+' kg':''}</div>${cadStr?`<div style="margin-top:3px">${cadStr}</div>`:''}</div>
+        <div style="text-align:right;flex-shrink:0">${badge}${tiempoStr?`<div style="font-size:10px;color:#889;margin-top:4px">⏱ ${tiempoStr}</div>`:''}</div>
+      </div>
+      <div style="padding:10px 14px">
+        ${ent?`<div class="hist-item"><div class="hist-acc" style="color:var(--green)">🟢 Entrada</div><div class="hist-info"><div>${esc(ent.almacenDestino||'—')}${ent.ubicacion&&ent.ubicacion!=='—'?' · 📍 '+esc(ent.ubicacion):''}</div><div class="hist-date">${ent.fecha}</div></div></div>`:''}
+        ${tras.map(t=>`<div class="hist-item"><div class="hist-acc" style="color:#E67E22">↔️ Traslado</div><div class="hist-info"><div>${esc(t.almacenOrigen||'—')} → ${esc(t.almacenDestino||'—')}</div><div class="hist-date">${t.fecha}</div></div></div>`).join('')}
+        ${activo?`<div class="hist-item" style="opacity:.4"><div class="hist-acc">⬜ En almacén</div><div class="hist-info"><div>${esc(r.almacen||'—')}${r.ubicacion?' · 📍 '+esc(r.ubicacion):''}</div></div></div>`:''}
+        ${sal?`<div class="hist-item"><div class="hist-acc" style="color:var(--red)">🔴 Salida</div><div class="hist-info"><div>${esc(sal.accion.replace('Salida — ','Motivo: '))}</div>${sal.operario&&sal.operario!=='—'?`<div class="hist-date">Op: ${esc(sal.operario)}</div>`:''}<div class="hist-date">${sal.fecha}</div></div></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function buildDashboard(){
+  const registros=getRegistros(),activos=registros.filter(r=>r.estado==='activo');
+  const ALMS=['Almacén Central (1)','Almacén 2','Almacén 3','Almacén 4','Almacén 5','Almacén 6','Almacén 7','Almacén 8','Almacén 9','Almacén 10','Almacén 11'];
+  const caducados=activos.filter(r=>{const c=getCadInfo(r);return c&&c.cls==='cad-bad';}),proximos=activos.filter(r=>{const c=getCadInfo(r);return c&&c.cls==='cad-warn';});
+  document.getElementById('dash-cards').innerHTML=`<div class="dash-card"><div class="dc-val">${activos.length}</div><div class="dc-lbl">Palés en stock</div></div><div class="dash-card"><div class="dc-val">${new Set(activos.map(r=>r.almacen)).size}</div><div class="dc-lbl">Almacenes activos</div></div><div class="dash-card"><div class="dc-val ${caducados.length?'red':''}">${caducados.length}</div><div class="dc-lbl">Caducados</div></div><div class="dash-card"><div class="dc-val ${proximos.length?'ora':''}">${proximos.length}</div><div class="dc-lbl">Caducan &lt;3m</div></div>`;
+  const almC=ALMS.map(a=>({alm:a,n:activos.filter(r=>r.almacen===a).length})).filter(x=>x.n>0),maxA=Math.max(1,...almC.map(x=>x.n));
+  document.getElementById('dash-alm').innerHTML=almC.length?almC.map(x=>`<div class="bar-row"><div class="bar-lbl">${x.alm.replace('Almacén ','Alm.')}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(x.n/maxA*100)}%"></div></div><div class="bar-num">${x.n}</div></div>`).join(''):'<div class="dash-empty">Sin palés registrados</div>';
+  const tipos=[{lbl:'Materia Prima',cls:'MP',bg:'var(--mp-bg)',fg:'var(--mp-fg)'},{lbl:'Materia Auxiliar',cls:'MA',bg:'var(--ma-bg)',fg:'var(--ma-fg)'},{lbl:'PM',cls:'PM',bg:'var(--pm-bg)',fg:'var(--pm-fg)'},{lbl:'PV',cls:'PV',bg:'var(--pv-bg)',fg:'var(--pv-fg)'}];
+  const maxT=Math.max(1,...tipos.map(t=>activos.filter(r=>r.cls===t.cls).length));
+  document.getElementById('dash-tipo').innerHTML=tipos.map(t=>{const n=activos.filter(r=>r.cls===t.cls).length;return `<div class="tipo-row"><span class="tipo-badge" style="background:${t.bg};color:${t.fg}">${t.cls}</span><span style="flex:1;margin:0 10px;font-size:12px">${t.lbl}</span><div class="bar-track" style="max-width:120px"><div class="bar-fill lime" style="width:${Math.round(n/maxT*100)}%"></div></div><span class="bar-num">${n}</span></div>`;}).join('');
+  const ok=activos.filter(r=>{const c=getCadInfo(r);return c&&c.cls==='cad-ok';}),sinD=activos.filter(r=>!r.fechaCaducidad),maxC=Math.max(1,ok.length,proximos.length,caducados.length,sinD.length);
+  document.getElementById('dash-cad').innerHTML=`<div class="bar-row"><div class="bar-lbl">✅ OK</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(ok.length/maxC*100)}%"></div></div><div class="bar-num">${ok.length}</div></div><div class="bar-row"><div class="bar-lbl">⏰ &lt;3m</div><div class="bar-track"><div class="bar-fill ora" style="width:${Math.round(proximos.length/maxC*100)}%"></div></div><div class="bar-num">${proximos.length}</div></div><div class="bar-row"><div class="bar-lbl">🚨 Caducado</div><div class="bar-track"><div class="bar-fill red" style="width:${Math.round(caducados.length/maxC*100)}%"></div></div><div class="bar-num">${caducados.length}</div></div><div class="bar-row"><div class="bar-lbl">❓ Sin datos</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(sinD.length/maxC*100)}%;background:#ccc"></div></div><div class="bar-num">${sinD.length}</div></div>`;
+  const hace7=new Date();hace7.setDate(hace7.getDate()-7);
+  const movs=[];
+  registros.forEach(reg=>(reg.historial||[]).forEach(h=>{const p=(h.fecha||'').split(',')[0].split('/');if(p.length===3){const d=new Date(+p[2],+p[1]-1,+p[0]);if(d>=hace7)movs.push({...h,lote:reg.lote,desc:reg.desc||reg.lote});}}));
+  movs.sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const ico={'Entrada':'🟢','Traslado':'↔️','Reentrada':'🔄','Salida':'🔴'};
+  document.getElementById('dash-act').innerHTML=movs.length?movs.slice(0,15).map(m=>{const base=m.accion.split(' — ')[0];return `<div class="dash-act-item"><div class="dash-act-ico">${ico[base]||'•'}</div><div class="dash-act-info"><div><strong>${esc(m.desc)}</strong> · ${esc(m.lote)}</div><div>${m.accion}</div><div class="dash-act-date">${m.fecha}</div></div></div>`;}).join(''):'<div class="dash-empty">Sin actividad en los últimos 7 días</div>';
+}
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+const ADMIN_PIN='3A2026';
+const DEFAULT_USER_PASS='ALMACEN3A';
+
+function getUsuarioPass(){ try{return localStorage.getItem('3a_user_pass')||DEFAULT_USER_PASS;}catch(e){return DEFAULT_USER_PASS;} }
+
+function checkLogin(){
+  const val=(document.getElementById('login-input')||{value:''}).value.trim();
+  if(val===getUsuarioPass()){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('login-input').value='';
+    document.getElementById('login-error').textContent='';
+  } else {
+    document.getElementById('login-error').textContent='Contraseña incorrecta';
+    document.getElementById('login-input').value='';
+    document.getElementById('login-input').focus();
+  }
+}
+function toggleAdminPanel(){const p=document.getElementById('admin-panel');p.style.display=p.style.display==='none'?'block':'none';if(p.style.display==='none')lockAdmin();}
+function checkAdminPin(){
+  const input=document.getElementById('admin-pin');
+  if(input.value===ADMIN_PIN){
+    document.getElementById('admin-locked').style.display='none';
+    document.getElementById('admin-unlocked').style.display='block';
+    document.getElementById('hist-step').style.display='block';
+    document.getElementById('btn-dashboard').style.display='block';
+    input.value='';toast('✅ Acceso concedido');
+  } else {input.value='';toast('❌ PIN incorrecto');input.focus();}
+}
+function lockAdmin(){
+  document.getElementById('admin-locked').style.display='block';
+  document.getElementById('admin-unlocked').style.display='none';
+  document.getElementById('admin-panel').style.display='none';
+  document.getElementById('admin-pin').value='';
+  const hs=document.getElementById('hist-step');if(hs)hs.style.display='none';
+  document.getElementById('btn-dashboard').style.display='none';
+  if(document.getElementById('dashboard-app').style.display!=='none') setMode('gestion');
+  const hp=document.getElementById('hist-panel');if(hp)hp.style.display='none';
+  const lbl=document.getElementById('hist-toggle-lbl');if(lbl)lbl.textContent='Ver ▾';
+}
+function cambiarPasswordUsuario(){
+  const val=(document.getElementById('new-pass-input')||{value:''}).value.trim();
+  if(!val||val.length<4){toast('Mínimo 4 caracteres');return;}
+  try{localStorage.setItem('3a_user_pass',val);}catch(e){}
+  document.getElementById('new-pass-input').value='';
+  toast('✅ Contraseña de acceso actualizada');
+}
+
+function clearRegistros(){localStorage.removeItem('3a_registros');refreshRegistry();updateStats();toast('🗑️ Registros borrados');}
+
+// ── Exportar Excel ────────────────────────────────────────────────────────────
+function exportAlmacenExcel(){
+  const registros=getRegistros();if(!registros.length){toast('No hay registros para exportar');return;}
+  const xml=buildExcelXML(registros);
+  const blob=new Blob(['﻿'+xml],{type:'application/vnd.ms-excel;charset=utf-8'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='Stock_3ABiotech_'+new Date().toLocaleDateString('es-ES').replace(/\//g,'-')+'.xls';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('📥 Excel descargado');
+}
+
+function buildExcelXML(registros){
+  const X=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const ALMS=['Almacén Central (1)','Almacén 2','Almacén 3','Almacén 4','Almacén 5','Almacén 6','Almacén 7','Almacén 8','Almacén 9','Almacén 10','Almacén 11'];
+  const activos=registros.filter(r=>r.estado==='activo'),ahora=new Date().toLocaleString('es-ES');
+  const c=(val,sId,type='String')=>`<Cell ss:StyleID="${sId}"><Data ss:Type="${type}">${X(String(val??''))}</Data></Cell>`;
+  const cn=(val,sId)=>{const n=parseFloat(String(val||0).replace(/[^\d.-]/g,''))||0;return `<Cell ss:StyleID="${sId}"><Data ss:Type="Number">${n}</Data></Cell>`;};
+  const r=(...cells)=>`<Row>${cells.join('')}</Row>\n`;
+  const styles=`<Styles><Style ss:ID="def"><Font ss:FontName="Calibri" ss:Size="10"/></Style><Style ss:ID="hdr"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="10" ss:FontName="Calibri"/><Interior ss:Color="#1A6B64" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#9DC41B"/></Borders></Style><Style ss:ID="tit"><Font ss:Bold="1" ss:Color="#9DC41B" ss:Size="16" ss:FontName="Calibri"/><Interior ss:Color="#000000" ss:Pattern="Solid"/></Style><Style ss:ID="sub"><Font ss:Color="#888" ss:Size="9" ss:FontName="Calibri"/><Interior ss:Color="#000000" ss:Pattern="Solid"/></Style><Style ss:ID="ev"><Font ss:FontName="Calibri" ss:Size="10"/><Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/></Style><Style ss:ID="od"><Font ss:FontName="Calibri" ss:Size="10"/><Interior ss:Color="#EAF4F3" ss:Pattern="Solid"/></Style><Style ss:ID="cad_ok"><Font ss:FontName="Calibri" ss:Size="10" ss:Color="#1E7A44"/><Interior ss:Color="#D5F5E3" ss:Pattern="Solid"/></Style><Style ss:ID="cad_warn"><Font ss:Bold="1" ss:FontName="Calibri" ss:Size="10" ss:Color="#B7770D"/><Interior ss:Color="#FEF9E7" ss:Pattern="Solid"/></Style><Style ss:ID="cad_bad"><Font ss:Bold="1" ss:FontName="Calibri" ss:Size="10" ss:Color="#C0392B"/><Interior ss:Color="#FDEDEC" ss:Pattern="Solid"/></Style><Style ss:ID="mov_in"><Font ss:Bold="1" ss:FontName="Calibri" ss:Size="10" ss:Color="#1E7A44"/><Interior ss:Color="#D5F5E3" ss:Pattern="Solid"/></Style><Style ss:ID="mov_out"><Font ss:Bold="1" ss:FontName="Calibri" ss:Size="10" ss:Color="#C0392B"/><Interior ss:Color="#FDEDEC" ss:Pattern="Solid"/></Style><Style ss:ID="mov_tr"><Font ss:Bold="1" ss:FontName="Calibri" ss:Size="10" ss:Color="#B7770D"/><Interior ss:Color="#FEF9E7" ss:Pattern="Solid"/></Style><Style ss:ID="stat_lbl"><Font ss:Bold="1" ss:Color="#1A6B64" ss:Size="10" ss:FontName="Calibri"/><Interior ss:Color="#EAF4F3" ss:Pattern="Solid"/></Style><Style ss:ID="stat_val"><Alignment ss:Horizontal="Center"/><Font ss:Bold="1" ss:Color="#1A6B64" ss:Size="14" ss:FontName="Calibri"/><Interior ss:Color="#D2EDEA" ss:Pattern="Solid"/></Style><Style ss:ID="alm_hdr"><Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="12" ss:FontName="Calibri"/><Interior ss:Color="#7BA31A" ss:Pattern="Solid"/></Style></Styles>`;
+  const cadS=(f,i)=>{if(!f)return i%2===0?'ev':'od';const p=f.split('/');if(p.length!==3)return i%2===0?'ev':'od';const d=Math.floor((new Date(+p[2],+p[1]-1,+p[0])-new Date())/86400000);return d<0?'cad_bad':d<90?'cad_warn':'cad_ok';};
+  const cadL=(f)=>{if(!f)return 'Sin datos';const p=f.split('/');if(p.length!==3)return f;const d=Math.floor((new Date(+p[2],+p[1]-1,+p[0])-new Date())/86400000);return d<0?'CADUCADO':d<30?'<1mes':d<90?Math.ceil(d/30)+'m':'OK';};
+  const parseFES=(s)=>{if(!s)return null;const p=s.split(',')[0].trim().split('/');if(p.length!==3)return null;return new Date(+p[2],+p[1]-1,+p[0]);};
+  const caducados=activos.filter(reg=>{const ci=getCadInfo(reg);return ci&&ci.cls==='cad-bad';}),proximos=activos.filter(reg=>{const ci=getCadInfo(reg);return ci&&ci.cls==='cad-warn';}),sinUbic=activos.filter(reg=>!reg.ubicacion);
+  let resumen=`<Worksheet ss:Name="Resumen"><Table ss:DefaultColumnWidth="120"><Column ss:Width="220"/><Column ss:Width="130"/><Column ss:Width="20"/><Column ss:Width="200"/><Column ss:Width="130"/><Row ss:Height="40">${c('3A BIOTECH · STOCK ALMACÉN','tit')}${c('','tit')}${c('','tit')}${c('','tit')}${c('','tit')}</Row><Row ss:Height="18">${c('Exportado: '+ahora,'sub')}${c('','sub')}${c('','sub')}${c('','sub')}${c('','sub')}</Row><Row ss:Height="8"/>${r(c('RESUMEN','hdr'),c('','hdr'),c('','hdr'),c('','hdr'),c('','hdr'))}${r(c('Total palés','stat_lbl'),cn(activos.length,'stat_val'),c('','ev'),c('Caducados','stat_lbl'),cn(caducados.length,caducados.length>0?'cad_bad':'stat_val'))}${r(c('Almacenes activos','stat_lbl'),cn(new Set(activos.map(reg=>reg.almacen)).size,'stat_val'),c('','ev'),c('Próx. a caducar','stat_lbl'),cn(proximos.length,proximos.length>0?'cad_warn':'stat_val'))}${r(c('Sin ubicación','stat_lbl'),cn(sinUbic.length,sinUbic.length>0?'cad_warn':'stat_val'),c('','ev'),c('Total movimientos','stat_lbl'),cn(registros.reduce((n,reg)=>n+(reg.historial||[]).length,0),'stat_val'))}<Row ss:Height="8"/>${r(c('ALMACÉN','hdr'),c('Palés','hdr'),c('','hdr'),c('Sin ubicación','hdr'),c('Caducados','hdr'))}`;
+  ALMS.forEach(alm=>{const rows=activos.filter(reg=>reg.almacen===alm),su=rows.filter(reg=>!reg.ubicacion).length,ca=rows.filter(reg=>{const ci=getCadInfo(reg);return ci&&ci.cls==='cad-bad';}).length;resumen+=r(c(alm,'ev'),cn(rows.length,'ev'),c('','ev'),cn(su,su>0?'cad_warn':'ev'),cn(ca,ca>0?'cad_bad':'ev'));});
+  resumen+=`</Table></Worksheet>`;
+  const sH=r(c('Producto','hdr'),c('Nº Lote','hdr'),c('Ref','hdr'),c('Tipo','hdr'),c('Kg','hdr'),c('Almacén','hdr'),c('Ubicación','hdr'),c('Fecha Fab.','hdr'),c('Caduca','hdr'),c('Estado Cad.','hdr'),c('POL','hdr'),c('Fecha Entrada','hdr'));
+  const sR=activos.map((row,i)=>{const s=cadS(row.fechaCaducidad,i);return r(c(row.desc||'',s),c(row.lote||'',s),c(row.ref||'',s),c(row.tipo||'',s),cn(row.kg||0,s),c(row.almacen||'',s),c(row.ubicacion||'',s),c(row.fechaFab||'',s),c(row.fechaCaducidad||'',s),c(cadL(row.fechaCaducidad),s),c(row.pol||'',s),c(row.fechaEntrada||'',s));}).join('');
+  const stockSheet=`<Worksheet ss:Name="Stock Activo"><Table>${sH}${sR}</Table><WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><FreezePanes/><FrozenNoSplit/><SplitHorizontal>1</SplitHorizontal><TopRowBottomPane>1</TopRowBottomPane><ActivePane>2</ActivePane></WorksheetOptions><AutoFilter x:Range="R1C1:R1C12" xmlns="urn:schemas-microsoft-com:office:excel"/></Worksheet>`;
+  const tH=r(c('Producto','hdr'),c('Lote','hdr'),c('Ref','hdr'),c('Kg','hdr'),c('Fecha Entrada','hdr'),c('Alm.Entrada','hdr'),c('Ubic.Entrada','hdr'),c('Op.Entrada','hdr'),c('Traslados','hdr'),c('Alm.Final','hdr'),c('Ubic.Final','hdr'),c('Fecha Salida','hdr'),c('Motivo','hdr'),c('Op.Salida','hdr'),c('Días','hdr'),c('Estado','hdr'),c('Caduca','hdr'));
+  const tR=registros.map((reg,i)=>{const hist=reg.historial||[],ent=hist.find(h=>h.accion==='Entrada'||h.accion==='Reentrada'),sal=[...hist].reverse().find(h=>h.accion.startsWith('Salida')),tras=hist.filter(h=>h.accion==='Traslado');const fe=ent?ent.fecha:'',ae=ent?ent.almacenDestino||'':'',ue=ent?(ent.ubicacion&&ent.ubicacion!=='—'?ent.ubicacion:''):'',oe=ent?(ent.operario&&ent.operario!=='—'?ent.operario:''):'',ts=tras.map(t=>`${t.fecha}:${t.almacenOrigen}→${t.almacenDestino}`).join('|'),fs=sal?sal.fecha:'',ms=sal?sal.accion.replace('Salida — ',''):'',os=sal?(sal.operario&&sal.operario!=='—'?sal.operario:''):'';let dias='';const dI=parseFES(fe),dF=sal?parseFES(fs):new Date();if(dI&&dF){const d=Math.floor((dF-dI)/86400000);if(!isNaN(d)&&d>=0)dias=d;}const s=cadS(reg.fechaCaducidad,i),sRow=reg.estado==='activo'?s:'od';return r(c(reg.desc||'',sRow),c(reg.lote||'',sRow),c(reg.ref||'',sRow),cn(reg.kg||0,sRow),c(fe,sRow),c(ae,sRow),c(ue,sRow),c(oe,sRow),c(ts||'Sin traslados',sRow),c(reg.almacen||'',sRow),c(reg.ubicacion||'',sRow),c(fs,sRow),c(ms,sRow),c(os,sRow),dias!==''?cn(dias,sRow):c('',sRow),c(reg.estado==='activo'?'En almacén':'Salida',reg.estado==='activo'?'mov_in':'mov_out'),c(reg.fechaCaducidad||'',s));}).join('');
+  const trazSheet=`<Worksheet ss:Name="Trazabilidad"><Table>${tH}${tR}</Table><WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><FreezePanes/><FrozenNoSplit/><SplitHorizontal>1</SplitHorizontal><TopRowBottomPane>1</TopRowBottomPane><ActivePane>2</ActivePane></WorksheetOptions><AutoFilter x:Range="R1C1:R1C17" xmlns="urn:schemas-microsoft-com:office:excel"/></Worksheet>`;
+  let almSheets='';
+  ALMS.forEach(alm=>{const rows=activos.filter(reg=>reg.almacen===alm),name=alm.replace('Almacén ','Alm.').substring(0,31),almRows=rows.length?rows.map((row,i)=>{const s=cadS(row.fechaCaducidad,i);return r(c(row.desc||'',s),c(row.lote||'',s),c(row.ref||'',s),cn(row.kg||0,s),c(row.ubicacion||'',s),c(row.fechaCaducidad||'',s),c(cadL(row.fechaCaducidad),s),c(row.fechaEntrada||'',s));}).join(''):r(c('Sin palés','od'),c('','od'),c('','od'),c('','od'),c('','od'),c('','od'),c('','od'),c('','od'));almSheets+=`<Worksheet ss:Name="${X(name)}"><Table><Row ss:Height="26">${c(alm.toUpperCase(),'alm_hdr')}${c('','alm_hdr')}${c('','alm_hdr')}${c('','alm_hdr')}${c('','alm_hdr')}${c('','alm_hdr')}${c('','alm_hdr')}${c('','alm_hdr')}</Row>${r(c('Producto','hdr'),c('Lote','hdr'),c('Ref','hdr'),c('Kg','hdr'),c('Ubicación','hdr'),c('Caduca','hdr'),c('Estado','hdr'),c('Entrada','hdr'))}${almRows}</Table><WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><FreezePanes/><FrozenNoSplit/><SplitHorizontal>2</SplitHorizontal><TopRowBottomPane>2</TopRowBottomPane></WorksheetOptions><AutoFilter x:Range="R2C1:R2C8" xmlns="urn:schemas-microsoft-com:office:excel"/></Worksheet>`;});
+  const movs=[];registros.forEach(reg=>(reg.historial||[]).forEach(h=>movs.push({...h,lote:reg.lote,desc:reg.desc||reg.lote})));movs.sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const hH=r(c('Fecha/Hora','hdr'),c('Lote','hdr'),c('Producto','hdr'),c('Referencia','hdr'),c('Kg','hdr'),c('Acción','hdr'),c('Alm.Origen','hdr'),c('Alm.Destino','hdr'),c('Ubicación','hdr'),c('Operario','hdr'),c('Caduca','hdr'),c('POL','hdr'));
+  const regMap={};registros.forEach(reg=>regMap[reg.lote]=reg);
+  const hR=movs.map(m=>{const base=m.accion.split(' — ')[0],s=base==='Entrada'?'mov_in':base==='Salida'?'mov_out':'mov_tr',reg=regMap[m.lote]||{};return r(c(m.fecha,s),c(m.lote,s),c(m.desc,s),c(reg.ref||'',s),cn(reg.kg||0,s),c(m.accion,s),c(m.almacenOrigen||'',s),c(m.almacenDestino||'',s),c(m.ubicacion||'',s),c(m.operario||'',s),c(reg.fechaCaducidad||'',s),c(reg.pol||'',s));}).join('');
+  const histSheet=`<Worksheet ss:Name="Historial"><Table>${hH}${hR}</Table><WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><FreezePanes/><FrozenNoSplit/><SplitHorizontal>1</SplitHorizontal><TopRowBottomPane>1</TopRowBottomPane></WorksheetOptions><AutoFilter x:Range="R1C1:R1C12" xmlns="urn:schemas-microsoft-com:office:excel"/></Worksheet>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<?mso-application progid="Excel.Sheet"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:x="urn:schemas-microsoft-com:office:excel">\n${styles}\n${resumen}\n${stockSheet}\n${trazSheet}\n${almSheets}\n${histSheet}\n</Workbook>`;
+}
+
+// ── Arranque ──────────────────────────────────────────────────────────────────
+// ── Migrar registros sin cls ──────────────────────────────────────────────────
+function migrarCls(){
+  try{
+    const registros=getRegistros();
+    let changed=false;
+    registros.forEach(r=>{
+      if(!r.cls&&(r.ref||r.desc)){
+        const p=getPrefix(r.ref||r.desc);
+        r.cls=p.cls; r.tipo=p.tipo; changed=true;
+      }
+    });
+    if(changed) saveRegistros(registros);
+  }catch(e){}
+}
+
+window.addEventListener('load',()=>{
+  initFirebase();
+  migrarCls();
+  setMode('etiqueta');
+  if(typeof navigator.share==='function') document.getElementById('btn-share').style.display='inline-flex';
+  if(navigator.bluetooth) document.getElementById('btn-bt').style.display='inline-flex';
+  loadSavedOperario();loadSavedPOL();
+  document.getElementById('preview-wrap').innerHTML='<div style="text-align:center;color:#aaa;padding:30px;font-size:13px">Rellena el nombre del producto y el nº de lote para ver la vista previa</div>';
+  checkURLParams();
+});
+</script>
+</body>
+</html>
